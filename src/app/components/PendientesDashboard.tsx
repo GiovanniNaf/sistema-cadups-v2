@@ -44,16 +44,24 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Calcular la fecha límite (hoy + 3 días)
+      const hoy = new Date();
+      const fechaLimite = new Date();
+      fechaLimite.setDate(hoy.getDate() + 3);
+      
       const [{ data: interData }, { data: medData }, { data: pacData }] = await Promise.all([
         supabase.from('interconsultas').select('*').eq('completada', false).order('fecha', { ascending: true }),
-        supabase.from('medicamentos').select('*').gte('fecha_fin', new Date().toISOString()).order('fecha_fin'),
+        supabase.from('medicamentos').select('*')
+          .lte('fecha_fin', fechaLimite.toISOString()) // Solo medicamentos que terminan en ≤ 3 días
+          .gte('fecha_fin', hoy.toISOString()) // Y que no han expirado aún
+          .order('fecha_fin'),
         supabase.from('pacientes').select('id, nombre')
-      ])
-
-      setInterconsultas(interData || [])
-      setMedicamentos(medData || [])
-      setPacientes(pacData || [])
-      setLoading(false)
+      ]);
+    
+      setInterconsultas(interData || []);
+      setMedicamentos(medData || []);
+      setPacientes(pacData || []);
+      setLoading(false);
     }
 
     fetchData()
@@ -120,11 +128,17 @@ export default function Dashboard() {
     return Math.ceil(diffTime / (1000 * 3600 * 24))
   }
 
-  const formatDate = (fecha: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
-    const date = new Date(fecha)
-    return new Intl.DateTimeFormat('es-ES', options).format(date)
-  }
+ 
+
+const formatDate = (fecha: string) => {
+  return new Date(fecha)
+    .toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC'  // Fuerza UTC en el formateo
+    });
+}
 
   if (loading) return <p className="text-center text-gray-500 p-6">Cargando datos...</p>
 
@@ -164,7 +178,7 @@ return (
                   </button>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mt-2"><strong>Fecha:</strong> {formatDate(item.fecha)}</p>
+              <p className="text-sm text-gray-600 mt-2"><strong>Fecha de la cita:</strong> {formatDate(item.fecha)}</p>
               <p className="text-sm text-gray-600"><strong>Observación:</strong> {item.observacion || 'Ninguna'}</p>
             </div>
           ))}

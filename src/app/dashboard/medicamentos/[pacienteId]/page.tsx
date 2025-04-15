@@ -41,13 +41,15 @@ export default function MedicamentosPage() {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
   }
 
+
   const formatFecha = (fecha: string) => {
-    const f = new Date(fecha)
-    return f.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
+    return new Date(fecha)
+      .toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC'  // Fuerza UTC en el formateo
+      });
   }
 
   const eliminarMedicamento = async (id: number) => {

@@ -4,6 +4,7 @@ import { useEffect, useState, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import toast, { Toaster } from 'react-hot-toast' // Importación agregada
 
 interface Paciente {
   id: number
@@ -13,23 +14,40 @@ interface Paciente {
   direccion: string
 }
 
+const ESPECIALISTAS = [
+  "Psiquiatría",
+  "Odontología",
+  "Fisioterapía",
+  "Internista",
+  "Ginecología",
+  "Otros"
+]
+
 export default function InterconsultaPage() {
   const [pacientesConInterconsultas, setPacientesConInterconsultas] = useState<
     (Paciente & { total_interconsultas: number })[]
   >([])
   const [todosLosPacientes, setTodosLosPacientes] = useState<Paciente[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const [nuevo, setNuevo] = useState({ paciente_id: '', fecha: '', observacion: '' })
+  const [nuevo, setNuevo] = useState({
+    paciente_id: '',
+    fecha: '',
+    observacion: '',
+    especialista: ''
+  })
   const router = useRouter()
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Obtener todas las interconsultas
       const { data: interconsultas, error: interconsultaError } = await supabase
         .from('interconsultas')
         .select('paciente_id')
 
-      if (interconsultaError) return console.error('Error al cargar interconsultas:', interconsultaError)
+      if (interconsultaError) {
+        console.error('Error al cargar interconsultas:', interconsultaError)
+        toast.error('Error al cargar interconsultas') // Notificación agregada
+        return
+      }
 
       const interconsultasPorPaciente: Record<number, number> = {}
       interconsultas?.forEach(({ paciente_id }) => {
@@ -45,7 +63,10 @@ export default function InterconsultaPage() {
           .select('*')
           .in('id', pacienteIds)
 
-        if (!pacientesError && pacientesData) {
+        if (pacientesError) {
+          console.error('Error al cargar pacientes:', pacientesError)
+          toast.error('Error al cargar pacientes') // Notificación agregada
+        } else if (pacientesData) {
           const pacientesConConteo = pacientesData.map((p) => ({
             ...p,
             total_interconsultas: interconsultasPorPaciente[p.id] || 0,
@@ -56,13 +77,15 @@ export default function InterconsultaPage() {
         setPacientesConInterconsultas([])
       }
 
-      // 2. Obtener todos los pacientes para el formulario
       const { data: allPacientes, error: allError } = await supabase
         .from('pacientes')
         .select('*')
         .order('nombre', { ascending: true })
 
-      if (!allError && allPacientes) {
+      if (allError) {
+        console.error('Error al cargar todos los pacientes:', allError)
+        toast.error('Error al cargar pacientes') // Notificación agregada
+      } else if (allPacientes) {
         setTodosLosPacientes(allPacientes)
       }
     }
@@ -71,16 +94,30 @@ export default function InterconsultaPage() {
   }, [])
 
   const crearInterconsulta = async () => {
-    const { error } = await supabase.from('interconsultas').insert([nuevo])
-    if (error) return console.error('Error al crear interconsulta:', error)
+    if (!nuevo.especialista) {
+      toast.error('Por favor seleccione un especialista') // Notificación modificada
+      return
+    }
 
-    setIsOpen(false)
-    setNuevo({ paciente_id: '', fecha: '', observacion: '' })
-    router.refresh()
+    try {
+      const { error } = await supabase.from('interconsultas').insert([nuevo])
+      if (error) throw error
+
+      setIsOpen(false)
+      setNuevo({ paciente_id: '', fecha: '', observacion: '', especialista: '' })
+      toast.success('Interconsulta creada exitosamente') // Notificación agregada
+      router.refresh()
+    } catch (error) {
+      console.error('Error al crear interconsulta:', error)
+      toast.error('Error al crear interconsulta') // Notificación agregada
+    }
   }
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
+      {/* Componente Toaster agregado */}
+      <Toaster position="top-right" />
+
       <div className="flex justify-between items-center mb-8 flex-col sm:flex-row">
         <h1 className="text-3xl font-bold text-gray-800 text-center sm:text-left">
           Pacientes con Interconsultas
@@ -93,6 +130,7 @@ export default function InterconsultaPage() {
         </button>
       </div>
 
+      {/* Resto del código permanece igual */}
       <div className="space-y-4">
         {pacientesConInterconsultas.map((paciente) => (
           <div
@@ -157,6 +195,40 @@ export default function InterconsultaPage() {
                 </div>
 
                 <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Especialista</label>
+  <div className="flex flex-col gap-2">
+    <select
+      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+      value={nuevo.especialista === '' ? 'Otros' : 
+             ESPECIALISTAS.includes(nuevo.especialista) ? nuevo.especialista : 'Otros'}
+      onChange={(e) => {
+        if (e.target.value !== 'Otros') {
+          setNuevo({ ...nuevo, especialista: e.target.value })
+        } else {
+          setNuevo({ ...nuevo, especialista: '' })
+        }
+      }}
+    >
+      <option value="">Seleccionar especialista...</option>
+      {ESPECIALISTAS.map((esp) => (
+        <option key={esp} value={esp}>{esp}</option>
+      ))}
+    </select>
+    
+    {(nuevo.especialista === '' || !ESPECIALISTAS.includes(nuevo.especialista)) && (
+      <input
+        type="text"
+        className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+        placeholder="Especificar especialista"
+        value={nuevo.especialista === '' ? '' : 
+               !ESPECIALISTAS.includes(nuevo.especialista) ? nuevo.especialista : ''}
+        onChange={(e) => setNuevo({ ...nuevo, especialista: e.target.value })}
+      />
+    )}
+  </div>
+</div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
                   <input
                     type="date"
@@ -187,7 +259,10 @@ export default function InterconsultaPage() {
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={crearInterconsulta}
                     disabled={
-                      !nuevo.paciente_id || !nuevo.fecha || !nuevo.observacion.trim()
+                      !nuevo.paciente_id ||
+                      !nuevo.fecha ||
+                      !nuevo.observacion.trim() ||
+                      !nuevo.especialista.trim()
                     }
                   >
                     Guardar
