@@ -35,7 +35,7 @@ export default function VisitasCalendar() {
   const [reporte, setReporte] = useState<Visita[]>([]);
   const [visitasDelDia, setVisitasDelDia] = useState<Visita[]>([]);
   const [nuevoHorario, setNuevoHorario] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,6 +125,7 @@ export default function VisitasCalendar() {
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDateClick = (arg: any) => {
     setNuevaFecha(arg.dateStr);
     setModalActivo(true);
@@ -151,7 +152,7 @@ export default function VisitasCalendar() {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('visitas')
         .insert([{
           paciente_id: pacienteSeleccionado,
@@ -171,6 +172,7 @@ export default function VisitasCalendar() {
         setModalActivo(false);
         setNuevoHorario(''); // Resetear el campo
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error('Error al agendar visita');
     }
@@ -183,7 +185,7 @@ export default function VisitasCalendar() {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('visitas')
         .select(`*, pacientes(nombre)`)
         .gte('fecha', rangoFechas.inicio)
@@ -198,6 +200,7 @@ export default function VisitasCalendar() {
         setReporte(reporteConNombres);
         toast.success(`Reporte generado con ${data.length} visitas`);
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error('Error al generar reporte');
     }
@@ -208,26 +211,26 @@ export default function VisitasCalendar() {
       toast.error('No hay datos para generar el reporte');
       return;
     }
-
+  
     const doc = new jsPDF();
-
+  
     doc.setFontSize(18);
     doc.setTextColor(40, 40, 40);
     doc.text('Reporte de Visitas UPS', 105, 20, { align: 'center' });
-
+  
     doc.setFontSize(12);
     doc.setTextColor(100, 100, 100);
     doc.text(`Del ${rangoFechas.inicio} al ${rangoFechas.fin}`, 105, 28, { align: 'center' });
     doc.text(`Total de visitas: ${reporte.length}`, 105, 35, { align: 'center' });
-
+  
     autoTable(doc, {
       startY: 45,
-      head: [['Paciente', 'Fecha', 'Horario', 'Personas']], // Añadir columna Horario
+      head: [['Paciente', 'Fecha', 'Horario', 'Personas']],
       body: reporte.map((v) => [
-        v.paciente_nombre,
-        v.fecha,
-        v.horario, // Mostrar el horario
-        v.numero_personas.toString()
+        v.paciente_nombre || '',
+        v.fecha || '',
+        v.horario || '',
+        v.numero_personas?.toString() || '0'
       ]),
       styles: {
         cellPadding: 5,
@@ -243,10 +246,10 @@ export default function VisitasCalendar() {
         fillColor: [245, 245, 245]
       }
     });
-
-    const pdfBlob = doc.output('blob')
-    const pdfUrl = URL.createObjectURL(pdfBlob)
-    window.open(pdfUrl, '_blank')
+  
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
   };
 
   return (
