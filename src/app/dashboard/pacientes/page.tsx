@@ -196,11 +196,6 @@ export default function PacientesPage() {
               key={paciente.id}
               className="bg-white p-4 md:p-6 rounded-xl shadow-md hover:shadow-lg transition-all relative"
             >
-              {esPacienteLlamada(paciente.fecha_ingreso) && (
-                <span className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                  Llamada Disponible
-                </span>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -221,9 +216,13 @@ export default function PacientesPage() {
                       {new Date(paciente.fecha_ingreso).toLocaleDateString('es-MX', { timeZone: 'UTC' })}
                     </span>
                   </p>
-                  {esPacienteLlamada(paciente.fecha_ingreso) && (
-                    <p className="text-sm text-green-600 font-medium">
-                      Disponible para recibir llamadas
+                  {esPacienteLlamada(paciente.fecha_ingreso) ? (
+                    <p className="bg-green-100 text-green-800 text-xs font-extrabold px-3 py-1 rounded-[20px] inline-block">
+                      Llamadas Disponible
+                    </p>
+                  ) : (
+                    <p className="bg-red-100 text-red-600 text-xs font-extrabold px-3 py-1 rounded-[20px] inline-block">
+                      Sin Acceso a Llamadas
                     </p>
                   )}
                 </div>
