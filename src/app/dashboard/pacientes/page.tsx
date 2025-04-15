@@ -116,15 +116,15 @@ export default function PacientesPage() {
     }
 
     const doc = new jsPDF()
-    
+
     doc.setFontSize(18)
     doc.setTextColor(40, 40, 40)
     doc.text('Reporte de Pacientes para Llamada', 105, 20, { align: 'center' })
-    
+
     doc.setFontSize(12)
     doc.setTextColor(100, 100, 100)
     doc.text(`Total de pacientes: ${pacientesLlamada.length}`, 105, 30, { align: 'center' })
-    
+
     autoTable(doc, {
       startY: 40,
       head: [['Expediente', 'Nombre', 'Edad', 'Teléfono', 'Fecha Ingreso']],
@@ -166,7 +166,7 @@ export default function PacientesPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
       <Toaster position="top-right" />
-      
+
       <div className="flex justify-between items-center mb-8 flex-col sm:flex-row gap-4">
         <h1 className="text-3xl font-bold text-gray-800 text-center sm:text-left">
           Lista de Pacientes
@@ -197,11 +197,11 @@ export default function PacientesPage() {
               className="bg-white p-4 md:p-6 rounded-xl shadow-md hover:shadow-lg transition-all relative"
             >
               {esPacienteLlamada(paciente.fecha_ingreso) && (
-                <span className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                <span className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap">
                   Llamada Disponible
                 </span>
               )}
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-lg md:text-xl font-semibold text-gray-900">{paciente.nombre}</p>
@@ -218,7 +218,7 @@ export default function PacientesPage() {
                   </p>
                   <p className="text-sm text-gray-600">
                     Fecha ingreso: <span className="font-medium">
-                      {new Date(paciente.fecha_ingreso).toLocaleDateString('es-MX')}
+                      {new Date(paciente.fecha_ingreso).toLocaleDateString('es-MX', { timeZone: 'UTC' })}
                     </span>
                   </p>
                   {esPacienteLlamada(paciente.fecha_ingreso) && (
@@ -292,7 +292,7 @@ export default function PacientesPage() {
                     type="text"
                     className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
                     value={nuevoPaciente.numero_expediente}
-                    onChange={(e) => setNuevoPaciente({...nuevoPaciente, numero_expediente: e.target.value})}
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, numero_expediente: e.target.value })}
                   />
                 </div>
 
@@ -302,7 +302,7 @@ export default function PacientesPage() {
                     type="text"
                     className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
                     value={nuevoPaciente.nombre}
-                    onChange={(e) => setNuevoPaciente({...nuevoPaciente, nombre: e.target.value})}
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, nombre: e.target.value })}
                   />
                 </div>
 
@@ -312,7 +312,7 @@ export default function PacientesPage() {
                     type="number"
                     className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
                     value={nuevoPaciente.edad}
-                    onChange={(e) => setNuevoPaciente({...nuevoPaciente, edad: e.target.value})}
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, edad: e.target.value })}
                   />
                 </div>
 
@@ -322,7 +322,7 @@ export default function PacientesPage() {
                     type="date"
                     className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
                     value={nuevoPaciente.fecha_ingreso}
-                    onChange={(e) => setNuevoPaciente({...nuevoPaciente, fecha_ingreso: e.target.value})}
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, fecha_ingreso: e.target.value })}
                   />
                 </div>
 
@@ -332,7 +332,7 @@ export default function PacientesPage() {
                     type="tel"
                     className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
                     value={nuevoPaciente.numero_contacto}
-                    onChange={(e) => setNuevoPaciente({...nuevoPaciente, numero_contacto: e.target.value})}
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, numero_contacto: e.target.value })}
                   />
                 </div>
 

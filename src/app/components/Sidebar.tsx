@@ -25,15 +25,15 @@ export default function Sidebar() {
   }
 
   const SidebarContent = (
-    <div className="flex flex-col justify-between h-full">
-      <div>
+    <div className="flex flex-col h-full">
+      <div className="flex-1"> {/* Este div ocupará todo el espacio disponible */}
         <div className="p-4 text-2xl font-bold border-b border-gray-700">Control UPS</div>
         <nav className="p-4 space-y-2">
           {links.map(({ href, label, icon: Icon }) => {
             const isActive = href === '/dashboard/'
               ? pathname === '/dashboard' || pathname === '/dashboard/'
               : pathname.startsWith(href)
-
+  
             return (
               <Link
                 key={href}
@@ -49,16 +49,15 @@ export default function Sidebar() {
               </Link>
             )
           })}
+          {/* Botón de cerrar sesión movido aquí */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full px-3 py-2 mt-2 bg-red-600 hover:bg-red-700 rounded transition"
+          >
+            <LogOut className="mr-3 h-5 w-5" />
+            Cerrar sesión
+          </button>
         </nav>
-      </div>
-      <div className="p-4 border-t border-gray-700">
-        <button
-          onClick={handleLogout}
-          className="flex items-center w-full px-3 py-2 bg-red-600 hover:bg-red-700 rounded transition"
-        >
-          <LogOut className="mr-3 h-5 w-5" />
-          Cerrar sesión
-        </button>
       </div>
     </div>
   )
