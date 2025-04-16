@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import jsPDF from 'jspdf'
-import { TrashIcon } from '@heroicons/react/24/outline'
-import { toast } from 'react-hot-toast'
+import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { toast , Toaster} from 'react-hot-toast'
+import { Dialog, Transition } from '@headlessui/react'
+import { Fragment } from 'react'
 
 interface Interconsulta {
   id: number
@@ -28,6 +30,8 @@ export default function InterconsultasPage() {
   const [pacienteInfo, setPacienteInfo] = useState<PacienteInfo>({ nombre: '', edad: 0, numero_expediente: '' })
   const [interconsultas, setInterconsultas] = useState<Interconsulta[]>([])
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [currentInterconsulta, setCurrentInterconsulta] = useState<Interconsulta | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,6 +70,37 @@ export default function InterconsultasPage() {
   
     fetchData()
   }, [pacienteId])
+
+  const abrirModalEdicion = (interconsulta: Interconsulta) => {
+    setCurrentInterconsulta(interconsulta)
+    setIsEditOpen(true)
+  }
+
+  const actualizarInterconsulta = async () => {
+    if (!currentInterconsulta) return
+
+    try {
+      const { data, error } = await supabase
+        .from('interconsultas')
+        .update({
+          fecha: currentInterconsulta.fecha,
+          observacion: currentInterconsulta.observacion
+        })
+        .eq('id', currentInterconsulta.id)
+        .select()
+      
+      if (error) throw error
+      
+      setInterconsultas(prev => 
+        prev.map(i => i.id === currentInterconsulta.id ? (data as Interconsulta[])[0] : i)
+      )
+      toast.success('Interconsulta actualizada correctamente')
+      setIsEditOpen(false)
+    } catch (error) {
+      console.error('Error al actualizar interconsulta:', error)
+      toast.error('Error al actualizar interconsulta')
+    }
+  }
 
   const eliminarInterconsulta = async (id: number) => {
     setIsDeleting(id)
@@ -180,9 +215,7 @@ export default function InterconsultasPage() {
 
         doc.setFontSize(fontSizeSmall)
         doc.setTextColor(secondaryColor)
-        doc.text('_________________________________', margin + 5, currentY + 50)
-        doc.text('Firma del especialista', margin + 5, currentY + 55)
-
+      
         currentY += 70
       }
     }
@@ -204,12 +237,12 @@ export default function InterconsultasPage() {
 
   return (
     <div className="container mx-auto px-4 py-10">
+      <Toaster position="top-right" />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-800">
           Interconsultas de <span className="text-indigo-600">{pacienteInfo.nombre}</span>
         </h1>
         <div className="flex gap-2">
-         
           <button
             onClick={generarPDF}
             className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg"
@@ -250,6 +283,13 @@ export default function InterconsultasPage() {
                     {interconsulta.completada ? 'Completada' : 'Pendiente'}
                   </span>
                   <button
+                    onClick={() => abrirModalEdicion(interconsulta)}
+                    className="p-1 text-indigo-500 hover:text-indigo-700"
+                    title="Editar interconsulta"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  <button
                     onClick={() => eliminarInterconsulta(interconsulta.id)}
                     disabled={isDeleting === interconsulta.id}
                     className="p-1 text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -269,6 +309,83 @@ export default function InterconsultasPage() {
           ))}
         </div>
       )}
+
+      {/* Modal de edición */}
+      <Transition show={isEditOpen && currentInterconsulta !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setIsEditOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 backdrop-blur-sm bg-black/30" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+              <Dialog.Title className="text-xl font-semibold mb-4">
+                Editar Interconsulta
+              </Dialog.Title>
+
+              {currentInterconsulta && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full border rounded-lg px-3 py-2"
+                      value={currentInterconsulta.fecha}
+                      onChange={(e) => 
+                        setCurrentInterconsulta({
+                          ...currentInterconsulta,
+                          fecha: e.target.value
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Observación
+                    </label>
+                    <textarea
+                      className="w-full border rounded-lg px-3 py-2 min-h-[150px]"
+                      value={currentInterconsulta.observacion}
+                      onChange={(e) => 
+                        setCurrentInterconsulta({
+                          ...currentInterconsulta,
+                          observacion: e.target.value
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      onClick={() => setIsEditOpen(false)}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={actualizarInterconsulta}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
+                      Guardar Cambios
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   )
 }

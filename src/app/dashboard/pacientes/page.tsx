@@ -19,6 +19,8 @@ interface Paciente {
 export default function PacientesPage() {
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [currentPaciente, setCurrentPaciente] = useState<Paciente | null>(null)
   const [nuevoPaciente, setNuevoPaciente] = useState({
     numero_expediente: '',
     nombre: '',
@@ -51,6 +53,11 @@ export default function PacientesPage() {
     fetchPacientes()
   }, [])
 
+  const abrirModalEdicion = (paciente: Paciente) => {
+    setCurrentPaciente(paciente)
+    setIsEditOpen(true)
+  }
+
   const crearPaciente = async () => {
     if (!nuevoPaciente.nombre || !nuevoPaciente.numero_expediente) {
       toast.error('Nombre y número de expediente son requeridos')
@@ -80,6 +87,38 @@ export default function PacientesPage() {
       })
     } catch (error) {
       toast.error('Error al crear paciente')
+      console.error('Error:', error)
+    }
+  }
+
+  const actualizarPaciente = async () => {
+    if (!currentPaciente?.nombre || !currentPaciente?.numero_expediente) {
+      toast.error('Nombre y número de expediente son requeridos')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('pacientes')
+        .update({
+          numero_expediente: currentPaciente.numero_expediente,
+          nombre: currentPaciente.nombre,
+          edad: Number(currentPaciente.edad) || null,
+          fecha_ingreso: currentPaciente.fecha_ingreso,
+          numero_contacto: currentPaciente.numero_contacto
+        })
+        .eq('id', currentPaciente.id)
+        .select()
+
+      if (error) throw error
+
+      setPacientes(pacientes.map(p => 
+        p.id === currentPaciente.id ? (data as Paciente[])[0] : p
+      ))
+      toast.success('Paciente actualizado exitosamente')
+      setIsEditOpen(false)
+    } catch (error) {
+      toast.error('Error al actualizar paciente')
       console.error('Error:', error)
     }
   }
@@ -196,7 +235,6 @@ export default function PacientesPage() {
               key={paciente.id}
               className="bg-white p-4 md:p-6 rounded-xl shadow-md hover:shadow-lg transition-all relative"
             >
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-lg md:text-xl font-semibold text-gray-900">{paciente.nombre}</p>
@@ -229,6 +267,12 @@ export default function PacientesPage() {
               </div>
 
               <div className="flex justify-end mt-4 space-x-2">
+                <button
+                  onClick={() => abrirModalEdicion(paciente)}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+                >
+                  Editar
+                </button>
                 <button
                   onClick={() => setConfirmacionEliminar(paciente.id)}
                   className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition-colors"
@@ -351,6 +395,99 @@ export default function PacientesPage() {
                   </button>
                 </div>
               </div>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* MODAL EDITAR PACIENTE */}
+      <Transition show={isEditOpen && currentPaciente !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setIsEditOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 backdrop-blur-sm bg-black/30" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+              <Dialog.Title className="text-xl font-semibold mb-4">Editar Paciente</Dialog.Title>
+
+              {currentPaciente && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número de Expediente*</label>
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      value={currentPaciente.numero_expediente}
+                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, numero_expediente: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo*</label>
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      value={currentPaciente.nombre}
+                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, nombre: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      value={currentPaciente.edad || ''}
+                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, edad: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Ingreso</label>
+                    <input
+                      type="date"
+                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      value={currentPaciente.fecha_ingreso || ''}
+                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, fecha_ingreso: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número de Contacto</label>
+                    <input
+                      type="tel"
+                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      value={currentPaciente.numero_contacto || ''}
+                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, numero_contacto: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
+                    <button
+                      className="px-4 py-2 text-gray-600 hover:underline"
+                      onClick={() => setIsEditOpen(false)}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={actualizarPaciente}
+                      disabled={!currentPaciente.nombre || !currentPaciente.numero_expediente}
+                    >
+                      Guardar Cambios
+                    </button>
+                  </div>
+                </div>
+              )}
             </Dialog.Panel>
           </div>
         </Dialog>

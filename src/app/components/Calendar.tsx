@@ -212,40 +212,75 @@ export default function VisitasCalendar() {
       return;
     }
   
+    // Filtrar visitas por horario
+    const visitasManana = reporte.filter(v => v.horario === '11 AM a 2 PM');
+    const visitasTarde = reporte.filter(v => v.horario === '2 PM a 5 PM');
+  
     const doc = new jsPDF();
   
+    // Título y rango de fechas
     doc.setFontSize(18);
-    doc.setTextColor(40, 40, 40);
     doc.text('Reporte de Visitas UPS', 105, 20, { align: 'center' });
   
     doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100);
     doc.text(`Del ${rangoFechas.inicio} al ${rangoFechas.fin}`, 105, 28, { align: 'center' });
     doc.text(`Total de visitas: ${reporte.length}`, 105, 35, { align: 'center' });
   
-    autoTable(doc, {
-      startY: 45,
-      head: [['Paciente', 'Fecha', 'Horario', 'Personas']],
-      body: reporte.map((v) => [
-        v.paciente_nombre || '',
-        v.fecha || '',
-        v.horario || '',
-        v.numero_personas?.toString() || '0'
-      ]),
-      styles: {
-        cellPadding: 5,
-        fontSize: 10,
-        valign: 'middle'
-      },
-      headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: {
-        fillColor: [245, 245, 245]
-      }
-    });
+    // Tabla para visitas de la mañana (11 AM - 2 PM)
+    if (visitasManana.length > 0) {
+      doc.text('Visitas de 11 AM a 2 PM', 14, 45);
+      autoTable(doc, {
+        startY: 50,
+        head: [['Paciente', 'Fecha', 'Personas']],
+        body: visitasManana.map((v) => [
+          v.paciente_nombre || '',
+          v.fecha || '',
+          v.numero_personas?.toString() || '0'
+        ]),
+        styles: {
+          cellPadding: 5,
+          fontSize: 10,
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [59, 130, 246],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        }
+      });
+    }
+  
+    // Tabla para visitas de la tarde (2 PM - 5 PM)
+    if (visitasTarde.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const startY = visitasManana.length > 0 ? (doc as any).lastAutoTable.finalY + 10 : 50;
+      doc.text('Visitas de 2 PM a 5 PM', 14, startY);
+      autoTable(doc, {
+        startY: startY + 5,
+        head: [['Paciente', 'Fecha', 'Personas']],
+        body: visitasTarde.map((v) => [
+          v.paciente_nombre || '',
+          v.fecha || '',
+          v.numero_personas?.toString() || '0'
+        ]),
+        styles: {
+          cellPadding: 5,
+          fontSize: 10,
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [59, 130, 246],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        }
+      });
+    }
   
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
