@@ -71,8 +71,8 @@ export default function CajaPage() {
     doc.setFontSize(9);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
-    doc.text('REPORTE TIENDA', margin, margin);
-    doc.text(`Fecha: ${hoyFormateado}`, doc.internal.pageSize.getWidth() - margin - 30, margin);
+    doc.text('LISTA DE TIENDA', margin, margin);
+    doc.text(`Fecha: ${hoyFormateado}`, doc.internal.pageSize.getWidth() - margin - 50, margin);
 
     const startY = margin + 12;
 
@@ -87,7 +87,7 @@ export default function CajaPage() {
       "7": { cellWidth: 25, halign: 'center' },
       "8": { cellWidth: 20, halign: 'center' },
       "9": { cellWidth: 25, halign: 'center' },
-      "10": { cellWidth: 20, halign: 'center' },
+      "10": { cellWidth: 25, halign: 'center' },
       "11": { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
     };
     autoTable(doc, {
