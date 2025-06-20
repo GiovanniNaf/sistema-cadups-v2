@@ -229,7 +229,7 @@ export default function DetalleCajaPaciente() {
 
       doc.text(deuda.tipo.charAt(0).toUpperCase() + deuda.tipo.slice(1), margin + 5, yPos + 7);
 
-      const fechaDeuda = new Date(deuda.fecha).toLocaleDateString('es-MX', {
+      const fechaDeuda = new Date(`${deuda.fecha}T12:00:00`).toLocaleDateString('es-MX', {
         timeZone: 'America/Mexico_City',
         year: 'numeric',
         month: 'short',
