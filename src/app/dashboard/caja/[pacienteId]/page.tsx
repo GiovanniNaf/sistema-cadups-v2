@@ -55,6 +55,7 @@ export default function DetalleCajaPaciente() {
   // Estado para pestañas activas
   const [tabActiva, setTabActiva] = useState<'deudas' | 'historial' | 'depositos'>('deudas');
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cortesCaja, setCortesCaja] = useState<any[]>([]);
 
   useEffect(() => {
