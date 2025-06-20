@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState, Fragment, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { supabase } from '@/lib/supabase'
 import { Toaster, toast } from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+
 
 interface Paciente {
   id: number
@@ -36,6 +37,18 @@ export default function PacientesPage() {
   })
   const [loading, setLoading] = useState(false)
   const [confirmacionEliminar, setConfirmacionEliminar] = useState<number | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const filteredPacientes = useMemo(() => {
+    if (!searchTerm) return pacientes
+
+    const term = searchTerm.toLowerCase()
+    return pacientes.filter(paciente =>
+      paciente.nombre.toLowerCase().includes(term) ||
+      paciente.numero_expediente.toLowerCase().includes(term) ||
+      (paciente.numero_contacto && paciente.numero_contacto.includes(term))
+    )
+  }, [pacientes, searchTerm])
 
   useEffect(() => {
     const fetchPacientes = async () => {
@@ -241,86 +254,110 @@ export default function PacientesPage() {
         </div>
       </div>
 
+      {/* Barra de búsqueda agregada */}
+      <div className="relative mb-6">
+        <input
+          type="text"
+          className="block w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Buscar por nombre, expediente o teléfono..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          >
+            <span className="text-gray-400 hover:text-gray-600">×</span>
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <div className="text-center py-10">Cargando pacientes...</div>
       ) : (
         <div className="space-y-4">
-          {pacientes.map((paciente) => (
-            <div
-              key={paciente.id}
-              className="bg-white p-4 md:p-6 rounded-xl shadow-md hover:shadow-lg transition-all relative"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-lg md:text-xl font-semibold text-gray-900">{paciente.nombre}</p>
-                  <p className="text-sm text-gray-600">
-                    Expediente: <span className="font-medium">{paciente.numero_expediente}</span>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Edad: <span className="font-medium">{paciente.edad}</span>
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-600">
-                    Teléfono: <span className="font-medium">{paciente.numero_contacto}</span>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Fecha ingreso: <span className="font-medium">
-                      {new Date(paciente.fecha_ingreso).toLocaleDateString('es-MX', { timeZone: 'UTC' })}
-                    </span>
-                  </p>
-                  {esPacienteLlamada(paciente.fecha_ingreso) ? (
-                    <p className="bg-green-100 text-green-800 text-xs font-extrabold px-3 py-1 rounded-[20px] inline-block">
-                      Llamadas Disponible
+          {filteredPacientes.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              {searchTerm ? 'No se encontraron pacientes que coincidan con la búsqueda' : 'No hay pacientes registrados'}
+            </div>
+          ) : (
+            filteredPacientes.map((paciente) => (
+              <div
+                key={paciente.id}
+                className="bg-white p-4 md:p-6 rounded-xl shadow-md hover:shadow-lg transition-all relative"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-lg md:text-xl font-semibold text-gray-900">{paciente.nombre}</p>
+                    <p className="text-sm text-gray-600">
+                      Expediente: <span className="font-medium">{paciente.numero_expediente}</span>
                     </p>
-                  ) : (
-                    <p className="bg-red-100 text-red-600 text-xs font-extrabold px-3 py-1 rounded-[20px] inline-block">
-                      Sin Acceso a Llamadas
+                    <p className="text-sm text-gray-600">
+                      Edad: <span className="font-medium">{paciente.edad}</span>
                     </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end mt-4 space-x-2">
-                <button
-                  onClick={() => abrirModalEdicion(paciente)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => setConfirmacionEliminar(paciente.id)}
-                  className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition-colors"
-                >
-                  Eliminar
-                </button>
-              </div>
-
-              {/* Modal de confirmación para eliminar */}
-              {confirmacionEliminar === paciente.id && (
-                <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmar eliminación</h3>
-                    <p className="text-sm text-gray-500 mb-6">¿Estás seguro que deseas eliminar a {paciente.nombre}? Esta acción no se puede deshacer.</p>
-                    <div className="flex justify-end gap-3">
-                      <button
-                        onClick={() => setConfirmacionEliminar(null)}
-                        className="px-4 py-2 text-gray-600 hover:underline"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={() => eliminarPaciente(paciente.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                      >
-                        Confirmar
-                      </button>
-                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-600">
+                      Teléfono: <span className="font-medium">{paciente.numero_contacto}</span>
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Fecha ingreso: <span className="font-medium">
+                        {new Date(paciente.fecha_ingreso).toLocaleDateString('es-MX', { timeZone: 'UTC' })}
+                      </span>
+                    </p>
+                    {esPacienteLlamada(paciente.fecha_ingreso) ? (
+                      <p className="bg-green-100 text-green-800 text-xs font-extrabold px-3 py-1 rounded-[20px] inline-block">
+                        Llamadas Disponible
+                      </p>
+                    ) : (
+                      <p className="bg-red-100 text-red-600 text-xs font-extrabold px-3 py-1 rounded-[20px] inline-block">
+                        Sin Acceso a Llamadas
+                      </p>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                <div className="flex justify-end mt-4 space-x-2">
+                  <button
+                    onClick={() => abrirModalEdicion(paciente)}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => setConfirmacionEliminar(paciente.id)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+
+                {confirmacionEliminar === paciente.id && (
+                  <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmar eliminación</h3>
+                      <p className="text-sm text-gray-500 mb-6">¿Estás seguro que deseas eliminar a {paciente.nombre}? Esta acción no se puede deshacer.</p>
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => setConfirmacionEliminar(null)}
+                          className="px-4 py-2 text-gray-600 hover:underline"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => eliminarPaciente(paciente.id)}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )}
 
