@@ -113,6 +113,7 @@ export default function MedicamentosPage() {
     setModalEditarActivo(true)
   }
 
+  
   const guardarEdicion = async () => {
     if (!formMedicamento) return
 
@@ -181,9 +182,10 @@ export default function MedicamentosPage() {
                     <span className="font-medium">Compra:</span> {formatFecha(medicamento.fecha_compra)}
                   </p>
                   <p className="text-sm text-gray-700">
-                    <span className="font-medium">Días restantes:</span>{' '}
+                    <span className="font-medium">Termina el medicamento en:</span>{' '}
                     <span className={terminaPronto ? 'text-red-600 font-semibold' : ''}>
                       {diasRestantes}
+                      <span className="font-medium"> dias</span>{' '}
                     </span>
                   </p>
                   <p className="text-sm text-gray-700">

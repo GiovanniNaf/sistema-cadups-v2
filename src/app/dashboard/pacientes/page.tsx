@@ -14,6 +14,9 @@ interface Paciente {
   edad: number
   fecha_ingreso: string
   numero_contacto: string
+  limite_credito: number
+  tienda: boolean
+  observaciones?: string
 }
 
 export default function PacientesPage() {
@@ -26,7 +29,10 @@ export default function PacientesPage() {
     nombre: '',
     edad: '',
     fecha_ingreso: '',
-    numero_contacto: ''
+    numero_contacto: '',
+    limite_credito: '',
+    tienda: true,
+    observaciones: ''
   })
   const [loading, setLoading] = useState(false)
   const [confirmacionEliminar, setConfirmacionEliminar] = useState<number | null>(null)
@@ -69,7 +75,10 @@ export default function PacientesPage() {
         .from('pacientes')
         .insert([{
           ...nuevoPaciente,
-          edad: Number(nuevoPaciente.edad) || null
+          edad: Number(nuevoPaciente.edad) || null,
+          limite_credito: Number(nuevoPaciente.limite_credito) || 0,
+          tienda: nuevoPaciente.tienda,
+          observaciones: nuevoPaciente.observaciones || null,
         }])
         .select()
 
@@ -83,7 +92,10 @@ export default function PacientesPage() {
         nombre: '',
         edad: '',
         fecha_ingreso: '',
-        numero_contacto: ''
+        numero_contacto: '',
+        limite_credito: '',
+        tienda: true,
+        observaciones: '',
       })
     } catch (error) {
       toast.error('Error al crear paciente')
@@ -105,14 +117,17 @@ export default function PacientesPage() {
           nombre: currentPaciente.nombre,
           edad: Number(currentPaciente.edad) || null,
           fecha_ingreso: currentPaciente.fecha_ingreso,
-          numero_contacto: currentPaciente.numero_contacto
+          numero_contacto: currentPaciente.numero_contacto,
+          limite_credito: currentPaciente.limite_credito || 0,
+          tienda: currentPaciente.tienda,
+          observaciones: currentPaciente.observaciones || null
         })
         .eq('id', currentPaciente.id)
         .select()
 
       if (error) throw error
 
-      setPacientes(pacientes.map(p => 
+      setPacientes(pacientes.map(p =>
         p.id === currentPaciente.id ? (data as Paciente[])[0] : p
       ))
       toast.success('Paciente actualizado exitosamente')
@@ -379,6 +394,39 @@ export default function PacientesPage() {
                   />
                 </div>
 
+                <hr className="my-4" />
+                <p className="text-sm font-bold text-gray-600">Datos de Tienda</p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Límite de Crédito</label>
+                  <input
+                    type="number"
+                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                    value={nuevoPaciente.limite_credito}
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, limite_credito: e.target.value })}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={nuevoPaciente.tienda}
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, tienda: e.target.checked })}
+                  />
+                  <label className="text-sm text-gray-700">Habilitar Tienda</label>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                  <textarea
+                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                    value={nuevoPaciente.observaciones}
+                    onChange={(e) =>
+                      setNuevoPaciente({ ...nuevoPaciente, observaciones: e.target.value })
+                    }
+                  />
+                </div>
+
+
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
                   <button
                     className="px-4 py-2 text-gray-600 hover:underline"
@@ -468,6 +516,44 @@ export default function PacientesPage() {
                       className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
                       value={currentPaciente.numero_contacto || ''}
                       onChange={(e) => setCurrentPaciente({ ...currentPaciente, numero_contacto: e.target.value })}
+                    />
+                  </div>
+
+                  <hr className="my-4" />
+                  <p className="text-sm font-bold text-gray-600">Datos de Tienda</p>
+
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Límite de Crédito</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      value={currentPaciente.limite_credito || ''}
+                      onChange={(e) =>
+                        setCurrentPaciente({ ...currentPaciente, limite_credito: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={currentPaciente.tienda}
+                      onChange={(e) =>
+                        setCurrentPaciente({ ...currentPaciente, tienda: e.target.checked })
+                      }
+                    />
+                    <label className="text-sm text-gray-700">Habilitar Tienda</label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                    <textarea
+                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      value={currentPaciente.observaciones || ''}
+                      onChange={(e) =>
+                        setCurrentPaciente({ ...currentPaciente, observaciones: e.target.value })
+                      }
                     />
                   </div>
 

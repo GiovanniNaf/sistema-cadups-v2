@@ -54,14 +54,14 @@ export default function Dashboard() {
       const hoy = new Date();
       const fechaLimiteMed = new Date();
       fechaLimiteMed.setDate(hoy.getDate() + 3);
-      
+
       // Fechas para medicamentos pendientes de pago (10 días desde compra)
       const fechaLimitePago = new Date();
       fechaLimitePago.setDate(hoy.getDate() + 10);
-      
+
       const [
-        { data: interData }, 
-        { data: medData }, 
+        { data: interData },
+        { data: medData },
         { data: medPendientesData },
         { data: pacData }
       ] = await Promise.all([
@@ -76,7 +76,7 @@ export default function Dashboard() {
           .order('fecha_compra', { ascending: false }),
         supabase.from('pacientes').select('id, nombre')
       ]);
-    
+
       setInterconsultas(interData || []);
       setMedicamentos(medData || []);
       setMedicamentosPendientes(medPendientesData || []);
@@ -122,7 +122,7 @@ export default function Dashboard() {
       .from('interconsultas')
       .update({ completada: true, observacion })
       .eq('id', interconsulta.id)
-  
+
     await supabase
       .from('interconsultas')
       .insert({
@@ -130,7 +130,7 @@ export default function Dashboard() {
         fecha: nuevaFecha,
         observacion: null
       })
-  
+
     setInterconsultas(prev => prev.filter(item => item.id !== interconsulta.id))
     closeModal()
   }
@@ -140,7 +140,7 @@ export default function Dashboard() {
       .from('medicamentos')
       .update({ estado: true })
       .eq('id', id)
-    
+
     if (!error) {
       setMedicamentosPendientes(prev => prev.filter(item => item.id !== id))
       toast.success('Medicamento marcado como pagado')
@@ -230,8 +230,8 @@ export default function Dashboard() {
         )}
       </div>
 
-         {/* MEDICAMENTOS PENDIENTES DE PAGO */}
-         <div>
+      {/* MEDICAMENTOS PENDIENTES DE PAGO */}
+      <div>
         <h2 className="text-xl sm:text-2xl font-semibold text-purple-700 mb-4">Medicamentos Pendientes de Pago</h2>
         {medicamentosPendientes.length === 0 ? (
           <p className="text-gray-500">No hay medicamentos pendientes de pago.</p>
@@ -240,25 +240,24 @@ export default function Dashboard() {
             {medicamentosPendientes.map((item) => {
               const diasParaPagar = calcularDiasParaPagar(item.fecha_compra)
               const colorCard = getColorDiasPago(diasParaPagar)
-              
+
               return (
                 <div
                   key={item.id}
                   className={`p-4 rounded-lg shadow border-l-4 hover:shadow-md transition ${colorCard}`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                      <CurrencyDollarIcon className="h-6 w-6 text-purple-600" />
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <CurrencyDollarIcon className="h-6 w-6 text-purple-600 shrink-0" />
                       <div>
                         <p className="text-base sm:text-lg font-medium">{getNombrePaciente(item.paciente_id)}</p>
                         <p className="text-sm text-gray-600"><strong>Medicamento:</strong> {item.nombre_medicamento}</p>
                         <p className="text-sm text-gray-600"><strong>Fecha compra:</strong> {formatDate(item.fecha_compra)}</p>
                         <p className="text-sm text-gray-600">
-                          <strong>Días para pagar:</strong> 
-                          <span className={`font-semibold ${
-                            diasParaPagar >= 8 ? 'text-green-600' : 
-                            diasParaPagar >= 4 ? 'text-orange-600' : 'text-red-600'
-                          }`}>
+                          <strong>Días para pagar:</strong>
+                          <span className={`font-semibold ${diasParaPagar >= 8 ? 'text-green-600' :
+                              diasParaPagar >= 4 ? 'text-orange-600' : 'text-red-600'
+                            }`}>
                             {' '}{diasParaPagar} días
                           </span>
                         </p>
@@ -267,12 +266,14 @@ export default function Dashboard() {
                         )}
                       </div>
                     </div>
-                    <button
-                      onClick={() => marcarComoPagado(item.id)}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 whitespace-nowrap"
-                    >
-                      Marcar como pagado
-                    </button>
+                    <div className="sm:mt-0">
+                      <button
+                        onClick={() => marcarComoPagado(item.id)}
+                        className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 w-full sm:w-auto"
+                      >
+                        Marcar como pagado
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -280,6 +281,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
 
       {/* MEDICAMENTOS POR FINALIZAR */}
       <div>
@@ -344,9 +346,8 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={formType === 'completar' ? handleSubmitCompletar : handleSubmitNueva}
-                className={`text-white px-4 py-1.5 rounded text-sm ${
-                  formType === 'completar' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                className={`text-white px-4 py-1.5 rounded text-sm ${formType === 'completar' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
               >
                 {formType === 'completar' ? 'Confirmar' : 'Agendar'}
               </button>

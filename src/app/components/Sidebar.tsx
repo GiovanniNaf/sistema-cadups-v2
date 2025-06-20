@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useState } from 'react'
-import { Menu, X, Home, ClipboardList, Pill, CalendarDays, LogOut, User2Icon } from 'lucide-react'
+import { Menu, X, Home, ClipboardList, Pill, CalendarDays, LogOut, User2Icon, BriefcaseIcon, CarFront, ShoppingBasket } from 'lucide-react'
 
 const links = [
   { href: '/dashboard/', label: 'Inicio', icon: Home },
@@ -12,6 +12,8 @@ const links = [
   { href: '/dashboard/interconsultas', label: 'Interconsultas', icon: ClipboardList },
   { href: '/dashboard/medicamentos', label: 'Medicamentos', icon: Pill },
   { href: '/dashboard/visitas', label: 'Visitas', icon: CalendarDays },
+  { href: '/dashboard/caja', label: 'Tienda', icon: BriefcaseIcon  },
+ 
 ]
 
 export default function Sidebar() {
