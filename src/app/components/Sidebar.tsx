@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useState } from 'react'
-import { Menu, X, Home, ClipboardList, Pill, CalendarDays, LogOut, User2Icon, BriefcaseIcon, CarFront, ShoppingBasket } from 'lucide-react'
+import { Menu, X, Home, ClipboardList, Pill, CalendarDays, LogOut, User2Icon, BriefcaseIcon } from 'lucide-react'
 
 const links = [
   { href: '/dashboard/', label: 'Inicio', icon: Home },

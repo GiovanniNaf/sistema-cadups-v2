@@ -59,7 +59,7 @@ export default function DetalleCajaPaciente() {
 
   useEffect(() => {
     if (pacienteIdNum) fetchDatos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+ 
   }, [pacienteIdNum]);
 
 
