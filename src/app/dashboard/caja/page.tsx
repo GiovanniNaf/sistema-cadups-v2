@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable, { Styles } from 'jspdf-autotable';
 
 interface Paciente {
   id: number;
@@ -60,7 +60,12 @@ export default function CajaPage() {
     const fontSizeHeader = 8;
 
     const hoy = new Date();
-    const formatoFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    const formatoFecha: Intl.DateTimeFormatOptions = {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    };
+
     const hoyFormateado = hoy.toLocaleDateString('es-MX', formatoFecha);
 
     doc.setFontSize(9);
@@ -71,20 +76,19 @@ export default function CajaPage() {
 
     const startY = margin + 12;
 
-    const columnStyles = {
-      0: { cellWidth: 45, halign: 'center' },
-      1: { cellWidth: 20, halign: 'left' },
-      2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 20, halign: 'center' },
-      5: { cellWidth: 25, halign: 'center' },
-      6: { cellWidth: 25, halign: 'center' },
-      7: { cellWidth: 25, halign: 'center' },
-      8: { cellWidth: 20, halign: 'center' },
-      9: { cellWidth: 25, halign: 'center' },
-      10: { cellWidth: 20, halign: 'center' },
-   
-      11: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
+    const columnStyles: { [key: string]: Partial<Styles> } = {
+      "0": { cellWidth: 45, halign: 'center' },
+      "1": { cellWidth: 20, halign: 'left' },
+      "2": { cellWidth: 20, halign: 'center' },
+      "3": { cellWidth: 20, halign: 'center' },
+      "4": { cellWidth: 20, halign: 'center' },
+      "5": { cellWidth: 25, halign: 'center' },
+      "6": { cellWidth: 25, halign: 'center' },
+      "7": { cellWidth: 25, halign: 'center' },
+      "8": { cellWidth: 20, halign: 'center' },
+      "9": { cellWidth: 25, halign: 'center' },
+      "10": { cellWidth: 20, halign: 'center' },
+      "11": { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
     };
     autoTable(doc, {
       head: [['NOMBRE', 'ESTADO', 'OBSERVACIONES', 'CIGARRO', 'CAFE', 'GALLETAS', 'SABRITAS', 'REFRESCOS', 'VARIOS', 'TOTAL', 'FIRMA']],
