@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState, ChangeEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+// Agrega al inicio del archivo con los demás imports
+import { jsPDF } from "jspdf";
 
 interface Deuda {
   id: number;
@@ -30,7 +32,9 @@ export default function DetalleCajaPaciente() {
   const pacienteIdNum = Number(pacienteId);
 
   // Estados para datos
-  const [fechaCobro, setFechaCobro] = useState(new Date().toISOString().split('T')[0]);
+  const [fechaCobro, setFechaCobro] = useState(
+    new Date().toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' })
+  );
   const [nombrePaciente, setNombrePaciente] = useState('');
   const [deudas, setDeudas] = useState<Deuda[]>([]);
   const [deudasPagadas, setDeudasPagadas] = useState<Deuda[]>([]);
@@ -54,14 +58,14 @@ export default function DetalleCajaPaciente() {
   const [mensajeDeposito, setMensajeDeposito] = useState('');
 
   // Estado para pestañas activas
-  const [tabActiva, setTabActiva] = useState<'deudas' | 'historial' |'cortes'| 'depositos'>('deudas');
+  const [tabActiva, setTabActiva] = useState<'deudas' | 'historial' | 'cortes' | 'depositos'>('deudas');
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cortesCaja, setCortesCaja] = useState<any[]>([]);
 
   useEffect(() => {
     if (pacienteIdNum) fetchDatos();
- 
+
   }, [pacienteIdNum]);
 
 
@@ -143,6 +147,145 @@ export default function DetalleCajaPaciente() {
     setLoading(false);
   };
 
+  // Agrega esta función con las demás funciones del componente
+  const generarReportePDF = () => {
+    // Crear nuevo documento PDF
+    const doc = new jsPDF();
+
+    // Configuración inicial
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = 20;
+
+    // Logo (opcional)
+    // doc.addImage(logo, 'JPEG', margin, 10, 30, 15);
+
+    // Título
+    doc.setFontSize(18);
+    doc.setTextColor(40);
+    doc.text('CORTE DE CAJA', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+
+    // Información del paciente
+    doc.setFontSize(12);
+    doc.text(`Paciente: ${nombrePaciente}`, margin, yPos);
+    yPos += 8;
+
+    const fechaActual = new Date().toLocaleDateString('es-MX', {
+      timeZone: 'America/Mexico_City',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    doc.text(`Fecha del reporte: ${fechaActual}`, margin, yPos);
+    yPos += 15;
+
+    // Corte de caja pendiente
+    const cortePendiente = cortesCaja.find(corte => corte.estado === false);
+    if (cortePendiente) {
+      doc.setFontSize(14);
+      doc.setTextColor(200, 0, 0);
+      doc.text('CORTE DE CAJA PENDIENTE', margin, yPos);
+      yPos += 8;
+
+      doc.setFontSize(12);
+      doc.setTextColor(40);
+      doc.text(`Monto total: $${cortePendiente.monto_total.toFixed(2)}`, margin, yPos);
+      yPos += 8;
+
+      const fechaCorte = new Date(cortePendiente.fecha).toLocaleDateString('es-MX', {
+        timeZone: 'America/Mexico_City',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      doc.text(`Fecha del corte: ${fechaCorte}`, margin, yPos);
+      yPos += 15;
+    }
+
+    // Tabla de adeudos
+    doc.setFontSize(14);
+    doc.setTextColor(40);
+    doc.text('DETALLE DE ADEUDOS', margin, yPos);
+    yPos += 10;
+
+    // Encabezados de tabla
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(59, 130, 246);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 10, 'F');
+    doc.text('Concepto', margin + 5, yPos + 7);
+    doc.text('Fecha', 70, yPos + 7);
+    doc.text('Monto', pageWidth - margin - 25, yPos + 7, { align: 'right' });
+    yPos += 12;
+
+    // Filas de adeudos
+    doc.setTextColor(0);
+    let totalAdeudos = 0;
+
+    deudas.forEach(deuda => {
+      const montoPendiente = deuda.monto - (deuda.monto_cubierto || 0);
+      totalAdeudos += montoPendiente;
+
+      doc.text(deuda.tipo.charAt(0).toUpperCase() + deuda.tipo.slice(1), margin + 5, yPos + 7);
+
+      const fechaDeuda = new Date(deuda.fecha).toLocaleDateString('es-MX', {
+        timeZone: 'America/Mexico_City',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+      doc.text(fechaDeuda, 70, yPos + 7);
+
+      doc.text(`$${montoPendiente.toFixed(2)}`, pageWidth - margin - 5, yPos + 7, { align: 'right' });
+
+      yPos += 8;
+
+      // Verificar si necesita nueva página
+      if (yPos > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        yPos = 20;
+      }
+    });
+
+    // Total
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.setDrawColor(200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 5;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL :', pageWidth - margin - 55, yPos + 7);
+    doc.text(` $${totalAdeudos.toFixed(2)}`, pageWidth - margin - 5, yPos + 7, { align: 'right' });
+
+    // Pie de página
+    yPos += 20;
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text('Este documento es un reporte informativo de adeudos ', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+
+
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    // Abrir en nueva pestaña
+    const newWindow = window.open(pdfUrl, '_blank');
+    // Liberar memoria después de que se abra
+    if (newWindow) {
+      newWindow.onload = () => {
+        URL.revokeObjectURL(pdfUrl);
+      };
+    } else {
+      // Fallback por si los popups están bloqueados
+      alert('Por favor permite popups para ver el reporte');
+      // Descargar como alternativa
+      doc.save(`Reporte_Adeudos_${nombrePaciente.replace(/\s+/g, '_')}.pdf`);
+      URL.revokeObjectURL(pdfUrl);
+    }
+
+  };
 
   const registrarCorteCaja = async () => {
     if (totalDeuda <= 0) {
@@ -271,7 +414,6 @@ export default function DetalleCajaPaciente() {
     return supabase.storage.from('comprobantes').getPublicUrl(data.path).data.publicUrl;
   };
 
-
   const manejarCambioMontoDeposito = (e: React.ChangeEvent<HTMLInputElement>) => {
     const monto = e.target.value;
     setMontoDeposito(monto);
@@ -284,6 +426,15 @@ export default function DetalleCajaPaciente() {
     const montoNum = parseFloat(monto);
     if (isNaN(montoNum)) return;
 
+    // Si no hay deudas seleccionadas
+    if (Object.values(deudasSeleccionadas).filter(Boolean).length === 0) {
+      setMensajeDeposito(
+        `El depósito de $${montoNum.toFixed(2)} se registrará como saldo a favor`
+      );
+      return;
+    }
+
+    // Si hay deudas seleccionadas
     const montoPendienteReal = deudas.reduce((total, deuda) => {
       if (!deudasSeleccionadas[deuda.id]) return total;
       return total + Math.max(0, deuda.monto - (deuda.monto_cubierto || 0));
@@ -332,18 +483,48 @@ export default function DetalleCajaPaciente() {
       }
 
       const deudasAPagar = deudas.filter(d => deudasSeleccionadas[d.id]);
-      if (deudasAPagar.length === 0 && montoNum > 0) {
-        throw new Error('No hay deudas seleccionadas para aplicar el pago');
+      let montoAplicado = 0;
+      let saldoFavor = montoNum;
+
+      // Solo intentar aplicar a deudas si hay deudas seleccionadas
+      if (deudasAPagar.length > 0) {
+        let totalPendiente = 0;
+        deudasAPagar.forEach(deuda => {
+          totalPendiente += Math.max(0, deuda.monto - (deuda.monto_cubierto || 0));
+        });
+
+        montoAplicado = Math.min(montoNum, totalPendiente);
+        saldoFavor = Math.max(0, montoNum - totalPendiente);
+
+        // Aplicar a deudas seleccionadas
+        if (montoAplicado > 0) {
+          let restante = montoAplicado;
+
+          for (const deuda of deudasAPagar) {
+            if (restante <= 0) break;
+
+            const pendiente = deuda.monto - (deuda.monto_cubierto || 0);
+            if (pendiente <= 0) continue;
+
+            const aPagar = Math.min(pendiente, restante);
+            const nuevoCubierto = (deuda.monto_cubierto || 0) + aPagar;
+            const pagado = nuevoCubierto >= deuda.monto;
+
+            const { error: deudaError } = await supabase
+              .from('deudas')
+              .update({
+                monto_cubierto: nuevoCubierto,
+                pagado: pagado
+              })
+              .eq('id', deuda.id);
+
+            if (deudaError) throw deudaError;
+            restante -= aPagar;
+          }
+        }
       }
 
-      let totalPendiente = 0;
-      deudasAPagar.forEach(deuda => {
-        totalPendiente += Math.max(0, deuda.monto - (deuda.monto_cubierto || 0));
-      });
-
-      const montoAplicado = Math.min(montoNum, totalPendiente);
-      const saldoFavor = Math.max(0, montoNum - totalPendiente);
-
+      // Registrar el depósito (siempre se registra, aunque no haya deudas)
       const { error: depositoError } = await supabase
         .from('depositos')
         .insert({
@@ -357,34 +538,7 @@ export default function DetalleCajaPaciente() {
 
       if (depositoError) throw depositoError;
 
-      if (montoAplicado > 0) {
-        let restante = montoAplicado;
-
-        for (const deuda of deudasAPagar) {
-          if (restante <= 0) break;
-
-          const pendiente = deuda.monto - (deuda.monto_cubierto || 0);
-          if (pendiente <= 0) continue;
-
-          const aPagar = Math.min(pendiente, restante);
-          const nuevoCubierto = (deuda.monto_cubierto || 0) + aPagar;
-          const pagado = nuevoCubierto >= deuda.monto;
-
-          const { error: deudaError } = await supabase
-            .from('deudas')
-            .update({
-              monto_cubierto: nuevoCubierto,
-              pagado: pagado
-            })
-            .eq('id', deuda.id);
-
-          if (deudaError) throw deudaError;
-          restante -= aPagar;
-        }
-      }
-
-      // ACTUALIZAR EL CORTE DE CAJA PENDIENTE A TRUE
-      // Buscar el último corte de caja pendiente para este paciente
+      // Actualizar corte pendiente si existe
       const { data: cortesPendientes } = await supabase
         .from('cortes_caja')
         .select('id')
@@ -395,7 +549,6 @@ export default function DetalleCajaPaciente() {
 
       if (cortesPendientes && cortesPendientes.length > 0) {
         const corteId = cortesPendientes[0].id;
-        // Actualizar el estado a TRUE
         const { error: updateError } = await supabase
           .from('cortes_caja')
           .update({ estado: true })
@@ -414,7 +567,6 @@ export default function DetalleCajaPaciente() {
     } catch (error) {
       console.error('Error en registrarDeposito:', error);
       setMensajeError('Ocurrió un error al registrar el deposito');
-
     } finally {
       setProcesandoDeposito(false);
     }
@@ -425,15 +577,33 @@ export default function DetalleCajaPaciente() {
   return (
     <div className="p-4 max-w-6xl mx-auto">
       {/* Header con información del paciente */}
+      {/* Header con información del paciente */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Detalle del paciente</h1>
             <p className="text-xl font-semibold text-gray-700 mt-2">{nombrePaciente}</p>
           </div>
-          <Link href="/dashboard/caja" className="text-blue-600 hover:text-blue-800 underline">
-            ← Volver a Caja
-          </Link>
+          <div className="flex flex-col items-end space-y-2">
+            <Link href="/dashboard/caja" className="text-blue-600 hover:text-blue-800 underline">
+              ← Volver a Caja
+            </Link>
+            {/* Botón para generar PDF - Solo visible si hay corte pendiente */}
+            {cortesCaja.some(corte => corte.estado === false) && (
+              <button
+                onClick={generarReportePDF}
+                className={`flex items-center text-sm px-3 py-1 rounded-md ${cortesCaja.some(corte => corte.estado === false)
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Generar Reporte PDF
+              </button>
+            )}
+          </div>
         </div>
 
         {saldoAFavor > 0 && (
@@ -502,7 +672,9 @@ export default function DetalleCajaPaciente() {
                               {d.tipo}
                             </h3>
                             <p className="text-sm text-gray-500">
-                              {new Date(d.fecha).toLocaleDateString()}
+                              {new Date(`${d.fecha}T12:00:00`).toLocaleDateString('es-MX', {
+                                timeZone: 'America/Mexico_City'
+                              })}
                             </p>
                           </div>
                           <div className="text-right">
@@ -550,8 +722,8 @@ export default function DetalleCajaPaciente() {
                     onClick={registrarCorteCaja}
                     disabled={cortesCaja.some(corte => corte.estado === false)} // Deshabilitar si existe corte pendiente
                     className={`mt-3 w-full text-white py-2 px-4 rounded-md transition-colors ${cortesCaja.some(corte => corte.estado === false)
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-purple-600 hover:bg-purple-700'
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700'
                       }`}
                   >
                     {cortesCaja.some(corte => corte.estado === false)
@@ -587,7 +759,14 @@ export default function DetalleCajaPaciente() {
                       {cortesCaja.map((corte) => (
                         <tr key={corte.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {new Date(corte.fecha).toLocaleDateString()} {new Date(corte.fecha).toLocaleTimeString()}
+                            {new Date(corte.fecha).toLocaleString('es-MX', {
+                              timeZone: 'America/Mexico_City',
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap font-medium">${corte.monto_total.toFixed(2)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -631,7 +810,14 @@ export default function DetalleCajaPaciente() {
                         <tr key={d.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap capitalize">{d.tipo}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-green-600 font-medium">${d.monto.toFixed(2)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-500">{new Date(d.fecha).toLocaleDateString()}</td>
+                          <td className="text-sm text-gray-500">
+                            {new Date(`${d.fecha}T12:00:00`).toLocaleDateString('es-MX', {
+                              timeZone: 'America/Mexico_City',
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit'
+                            })}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -666,7 +852,14 @@ export default function DetalleCajaPaciente() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {depositos.map((d) => (
                         <tr key={d.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">{new Date(d.fecha).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {new Date(d.fecha).toLocaleDateString('es-MX', {
+                              timeZone: 'America/Mexico_City',
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit'
+                            })}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap font-medium">${d.cantidad.toFixed(2)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">${d.saldo_a_favor?.toFixed(2) || '0.00'}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -730,10 +923,17 @@ export default function DetalleCajaPaciente() {
 
             <button
               onClick={registrarCobro}
-              disabled={cargandoCobro}
-              className="mt-4 w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-green-400 transition-colors"
+              disabled={cargandoCobro || cortesCaja.some(corte => corte.estado === false)}
+              className={`mt-4 w-full text-white py-2 px-4 rounded-md transition-colors ${cargandoCobro || cortesCaja.some(corte => corte.estado === false)
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700'
+                }`}
             >
-              {cargandoCobro ? 'Registrando...' : 'Registrar Cobro'}
+              {cargandoCobro
+                ? 'Registrando...'
+                : cortesCaja.some(corte => corte.estado === false)
+                  ? 'Corte pendiente - No se puede cobrar'
+                  : 'Registrar Cobro'}
             </button>
           </div>
 
@@ -912,7 +1112,7 @@ export default function DetalleCajaPaciente() {
               </button>
               <button
                 onClick={registrarDeposito}
-                disabled={procesandoDeposito}
+                disabled={procesandoDeposito || !montoDeposito || parseFloat(montoDeposito) <= 0}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400"
               >
                 {procesandoDeposito ? 'Procesando...' : 'Registrar Depósito'}

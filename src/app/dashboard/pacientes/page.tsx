@@ -339,56 +339,58 @@ export default function PacientesPage() {
             <div className="fixed inset-0 backdrop-blur-sm bg-black/30" />
           </Transition.Child>
 
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <Dialog.Panel className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+          <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
+            <Dialog.Panel className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 mx-auto my-8 max-h-[90vh] overflow-y-auto">
               <Dialog.Title className="text-xl font-semibold mb-4">Nuevo Paciente</Dialog.Title>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Número de Expediente*</label>
-                  <input
-                    type="text"
-                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                    value={nuevoPaciente.numero_expediente}
-                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, numero_expediente: e.target.value })}
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número de Expediente*</label>
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={nuevoPaciente.numero_expediente}
+                      onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, numero_expediente: e.target.value })}
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo*</label>
-                  <input
-                    type="text"
-                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                    value={nuevoPaciente.nombre}
-                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, nombre: e.target.value })}
-                  />
-                </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo*</label>
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={nuevoPaciente.nombre}
+                      onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, nombre: e.target.value })}
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
-                  <input
-                    type="number"
-                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                    value={nuevoPaciente.edad}
-                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, edad: e.target.value })}
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={nuevoPaciente.edad}
+                      onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, edad: e.target.value })}
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Ingreso</label>
-                  <input
-                    type="date"
-                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                    value={nuevoPaciente.fecha_ingreso}
-                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, fecha_ingreso: e.target.value })}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Ingreso</label>
+                    <input
+                      type="date"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={nuevoPaciente.fecha_ingreso}
+                      onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, fecha_ingreso: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Número de Contacto</label>
                   <input
                     type="tel"
-                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
                     value={nuevoPaciente.numero_contacto}
                     onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, numero_contacto: e.target.value })}
                   />
@@ -397,35 +399,35 @@ export default function PacientesPage() {
                 <hr className="my-4" />
                 <p className="text-sm font-bold text-gray-600">Datos de Tienda</p>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Límite de Crédito</label>
-                  <input
-                    type="number"
-                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                    value={nuevoPaciente.limite_credito}
-                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, limite_credito: e.target.value })}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Límite de Crédito</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={nuevoPaciente.limite_credito}
+                      onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, limite_credito: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={nuevoPaciente.tienda}
+                      onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, tienda: e.target.checked })}
+                    />
+                    <label className="text-sm text-gray-700">Habilitar Tienda</label>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={nuevoPaciente.tienda}
-                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, tienda: e.target.checked })}
-                  />
-                  <label className="text-sm text-gray-700">Habilitar Tienda</label>
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
                   <textarea
-                    className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                    className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
                     value={nuevoPaciente.observaciones}
-                    onChange={(e) =>
-                      setNuevoPaciente({ ...nuevoPaciente, observaciones: e.target.value })
-                    }
+                    onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, observaciones: e.target.value })}
                   />
                 </div>
-
 
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
                   <button
@@ -463,57 +465,59 @@ export default function PacientesPage() {
             <div className="fixed inset-0 backdrop-blur-sm bg-black/30" />
           </Transition.Child>
 
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <Dialog.Panel className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+          <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
+            <Dialog.Panel className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 mx-auto my-8 max-h-[90vh] overflow-y-auto">
               <Dialog.Title className="text-xl font-semibold mb-4">Editar Paciente</Dialog.Title>
 
               {currentPaciente && (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Número de Expediente*</label>
-                    <input
-                      type="text"
-                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                      value={currentPaciente.numero_expediente}
-                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, numero_expediente: e.target.value })}
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Número de Expediente*</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        value={currentPaciente.numero_expediente}
+                        onChange={(e) => setCurrentPaciente({ ...currentPaciente, numero_expediente: e.target.value })}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo*</label>
-                    <input
-                      type="text"
-                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                      value={currentPaciente.nombre}
-                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, nombre: e.target.value })}
-                    />
-                  </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo*</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        value={currentPaciente.nombre}
+                        onChange={(e) => setCurrentPaciente({ ...currentPaciente, nombre: e.target.value })}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
-                    <input
-                      type="number"
-                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                      value={currentPaciente.edad || ''}
-                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, edad: Number(e.target.value) })}
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                      <input
+                        type="number"
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        value={currentPaciente.edad || ''}
+                        onChange={(e) => setCurrentPaciente({ ...currentPaciente, edad: Number(e.target.value) })}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Ingreso</label>
-                    <input
-                      type="date"
-                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                      value={currentPaciente.fecha_ingreso || ''}
-                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, fecha_ingreso: e.target.value })}
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Ingreso</label>
+                      <input
+                        type="date"
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        value={currentPaciente.fecha_ingreso || ''}
+                        onChange={(e) => setCurrentPaciente({ ...currentPaciente, fecha_ingreso: e.target.value })}
+                      />
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Número de Contacto</label>
                     <input
                       type="tel"
-                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
                       value={currentPaciente.numero_contacto || ''}
                       onChange={(e) => setCurrentPaciente({ ...currentPaciente, numero_contacto: e.target.value })}
                     />
@@ -522,38 +526,33 @@ export default function PacientesPage() {
                   <hr className="my-4" />
                   <p className="text-sm font-bold text-gray-600">Datos de Tienda</p>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Límite de Crédito</label>
+                      <input
+                        type="number"
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        value={currentPaciente.limite_credito || ''}
+                        onChange={(e) => setCurrentPaciente({ ...currentPaciente, limite_credito: Number(e.target.value) })}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Límite de Crédito</label>
-                    <input
-                      type="number"
-                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
-                      value={currentPaciente.limite_credito || ''}
-                      onChange={(e) =>
-                        setCurrentPaciente({ ...currentPaciente, limite_credito: Number(e.target.value) })
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={currentPaciente.tienda}
-                      onChange={(e) =>
-                        setCurrentPaciente({ ...currentPaciente, tienda: e.target.checked })
-                      }
-                    />
-                    <label className="text-sm text-gray-700">Habilitar Tienda</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={currentPaciente.tienda}
+                        onChange={(e) => setCurrentPaciente({ ...currentPaciente, tienda: e.target.checked })}
+                      />
+                      <label className="text-sm text-gray-700">Habilitar Tienda</label>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
                     <textarea
-                      className="w-full border rounded-lg px-3 py-2 text-sm md:text-base"
+                      className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
                       value={currentPaciente.observaciones || ''}
-                      onChange={(e) =>
-                        setCurrentPaciente({ ...currentPaciente, observaciones: e.target.value })
-                      }
+                      onChange={(e) => setCurrentPaciente({ ...currentPaciente, observaciones: e.target.value })}
                     />
                   </div>
 
