@@ -1,10 +1,11 @@
 // src/app/page.tsx
 import VisitasCalendar from '../../components/Calendar'
 
-export default function Page() {
+function PageCalendar() {
   return (
     <div>
       <VisitasCalendar />
     </div>
   )
 }
+export default PageCalendar

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
 import autoTable, { Styles } from 'jspdf-autotable';
+import { withAuth } from '@/app/components/withAuth';
 
 interface Paciente {
   id: number;
@@ -16,7 +17,7 @@ interface Paciente {
   observaciones: string | null;
 }
 
-export default function CajaPage() {
+ function CajaPage() {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [pacientesOriginales, setPacientesOriginales] = useState<Paciente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,3 +212,4 @@ export default function CajaPage() {
     </div>
   );
 }
+export default withAuth(CajaPage)
