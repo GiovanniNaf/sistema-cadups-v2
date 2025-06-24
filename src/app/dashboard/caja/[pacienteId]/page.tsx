@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 // Agrega al inicio del archivo con los demás imports
 import { jsPDF } from "jspdf";
-import { withAuth } from '@/app/components/withAuth';
+
 
 interface Deuda {
   id: number;
@@ -27,7 +27,7 @@ interface Deposito {
   saldo_a_favor: number;
   montoaplicado: number;
 }
-function DetalleCajaPaciente() {
+export default function DetalleCajaPaciente() {
   const { pacienteId } = useParams();
   const pacienteIdNum = Number(pacienteId);
 
@@ -1125,4 +1125,3 @@ function DetalleCajaPaciente() {
   );
 }
 
-export default withAuth(DetalleCajaPaciente)
