@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import toast, { Toaster } from 'react-hot-toast'
-import { withAuth } from '@/app/components/withAuth'
 
 interface Medicamento {
   id: number
@@ -16,7 +15,7 @@ interface Medicamento {
   estado?: boolean
 }
 
-function MedicamentosPage() {
+export default function MedicamentosPage() {
   const { pacienteId } = useParams()
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [modalActivo, setModalActivo] = useState(false)
@@ -398,5 +397,3 @@ function MedicamentosPage() {
     </div>
   )
 }
-
-export default withAuth(MedicamentosPage)

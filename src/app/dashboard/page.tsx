@@ -1,11 +1,9 @@
-// app/dashboard/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
-import { withAuth } from '../components/withAuth'
 import PendientesDashboard from '../components/PendientesDashboard'
 
-function DashboardPage() {
+export default function DashboardPage() {
   const [username, setUsername] = useState<string | null>(null)
 
   useEffect(() => {
@@ -22,5 +20,3 @@ function DashboardPage() {
     </main>
   )
 }
-
-export default withAuth(DashboardPage)

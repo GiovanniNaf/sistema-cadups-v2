@@ -8,7 +8,6 @@ import toast, { Toaster } from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
-import { withAuth } from '@/app/components/withAuth'
 
 interface Paciente {
   id: number
@@ -29,7 +28,7 @@ interface Medicamento {
   paciente_nombre?: string
 }
 
-function MedicamentosPage() {
+export default function MedicamentosPage() {
   const [pacientesConMedicamentos, setPacientesConMedicamentos] = useState<
   (Paciente & { total_medicamentos: number })[]
 >([])
@@ -470,5 +469,3 @@ useEffect(() => {
     </div>
   )
 }
-
-export default withAuth(MedicamentosPage)

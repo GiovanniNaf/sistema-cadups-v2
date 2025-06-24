@@ -5,7 +5,6 @@ import { Dialog, Transition } from '@headlessui/react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast' // Importación agregada
-import { withAuth } from '@/app/components/withAuth'
 
 interface Paciente {
   id: number
@@ -24,7 +23,7 @@ const ESPECIALISTAS = [
   "Otros"
 ]
 
-function InterconsultaPage() {
+export default function InterconsultaPage() {
   const [pacientesConInterconsultas, setPacientesConInterconsultas] = useState<
     (Paciente & { total_interconsultas: number })[]
   >([])
@@ -277,5 +276,3 @@ function InterconsultaPage() {
     </div>
   )
 }
-
-export default withAuth(InterconsultaPage);

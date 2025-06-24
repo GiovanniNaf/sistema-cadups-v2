@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { Toaster, toast } from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { withAuth } from '@/app/components/withAuth'
 
 
 interface Paciente {
@@ -21,7 +20,7 @@ interface Paciente {
   observaciones?: string
 }
 
-function PacientesPage() {
+export default function PacientesPage() {
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -618,5 +617,3 @@ function PacientesPage() {
     </div>
   )
 }
-
-export default withAuth(PacientesPage)

@@ -8,7 +8,6 @@ import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline'
 import { toast , Toaster} from 'react-hot-toast'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
-import { withAuth } from '@/app/components/withAuth'
 
 interface Interconsulta {
   id: number
@@ -25,7 +24,7 @@ interface PacienteInfo {
   numero_expediente: string
 }
 
- function InterconsultasPage() {
+export default function InterconsultasPage() {
   const { pacienteId } = useParams()
  
   const [pacienteInfo, setPacienteInfo] = useState<PacienteInfo>({ nombre: '', edad: 0, numero_expediente: '' })
@@ -390,5 +389,3 @@ interface PacienteInfo {
     </div>
   )
 }
-
-export default withAuth(InterconsultasPage)

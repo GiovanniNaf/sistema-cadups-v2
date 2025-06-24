@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 import { Toaster, toast } from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { withAuth } from './withAuth';
 
 interface Visita {
   id: number;
@@ -25,7 +24,7 @@ interface Paciente {
   nombre: string;
 }
 
-function VisitasCalendar() {
+export default function VisitasCalendar() {
   const [visitas, setVisitas] = useState<Visita[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [modalActivo, setModalActivo] = useState(false);
@@ -507,5 +506,3 @@ function VisitasCalendar() {
     </div>
   );
 }
-
-export default withAuth(VisitasCalendar)
