@@ -27,7 +27,7 @@ interface Deposito {
   saldo_a_favor: number;
   montoaplicado: number;
 }
- function DetalleCajaPaciente() {
+function DetalleCajaPaciente() {
   const { pacienteId } = useParams();
   const pacienteIdNum = Number(pacienteId);
 
@@ -1124,6 +1124,5 @@ interface Deposito {
     </div>
   );
 }
-
 
 export default withAuth(DetalleCajaPaciente)
