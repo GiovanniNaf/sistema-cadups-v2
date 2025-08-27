@@ -41,6 +41,7 @@ export default function DetallePacientePage() {
 
   const [historial, setHistorial] = useState<Registro[]>([]);
   const [saldo, setSaldo] = useState<number>(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function fetchPaciente() {
@@ -133,29 +134,42 @@ export default function DetallePacientePage() {
     return urlData.publicUrl;
   };
 
-  const handleDeposito = async () => {
-    if (!deposito) return;
+const handleDeposito = async () => {
+  if (!deposito) {
+    alert('Ingresa un monto para el depósito');
+    return;
+  }
 
-    let evidenciaUrl = null;
-    if (comprobante) evidenciaUrl = await uploadComprobante(comprobante);
+  if (!comprobante) {
+    alert('Debes subir un comprobante del depósito');
+    return;
+  }
 
-    const { error } = await supabase.from('depositos_personales').insert([
-      {
-        paciente_id: pacienteId,
-        monto: parseFloat(deposito),
-        evidencia_url: evidenciaUrl,
-      },
-    ]);
+  setIsSaving(true);
 
-    if (error) console.error('Error al insertar depósito:', error.message);
-    else {
-      setDeposito('');
-      setComprobante(null);
-      await fetchHistorial();
-      await fetchSaldo();
-      alert('✅ Depósito agregado con éxito');
-    }
-  };
+  const evidenciaUrl = await uploadComprobante(comprobante);
+
+  const { error } = await supabase.from('depositos_personales').insert([
+    {
+      paciente_id: pacienteId,
+      monto: parseFloat(deposito),
+      evidencia_url: evidenciaUrl,
+    },
+  ]);
+  
+   setIsSaving(false);
+
+  if (error) {
+    console.error('Error al insertar depósito:', error.message);
+  } else {
+    setDeposito('');
+    setComprobante(null);
+    await fetchHistorial();
+    await fetchSaldo();
+    alert('✅ Depósito agregado con éxito');
+  }
+};
+
 
   const handleCobro = async () => {
     if (!cobro || !concepto) {
@@ -300,39 +314,74 @@ const generarPDFHistorial = () => {
           <TabsTrigger value="historial">Historial</TabsTrigger>
         </TabsList>
 
-        {/* Depósitos */}
-        <TabsContent value="deposito">
-          <div className="border p-4 rounded space-y-3">
-            <h2 className="text-lg font-semibold">Agregar Depósito</h2>
-            <input
-              type="number"
-              placeholder="Monto"
-              value={deposito}
-              onChange={(e) => setDeposito(e.target.value)}
-              className="border px-3 py-2 rounded w-full"
-            />
-            <label className="block">
-              <span className="text-sm text-gray-600">Comprobante (opcional)</span>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => setComprobante(e.target.files?.[0] || null)}
-                className="mt-1 block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
-              />
-            </label>
-            <button
-              onClick={handleDeposito}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full"
-            >
-              Guardar Depósito
-            </button>
-          </div>
-        </TabsContent>
+
+       {/* Depósitos */}
+<TabsContent value="deposito">
+  <div className="border p-4 rounded space-y-3">
+    <h2 className="text-lg font-semibold">Agregar Depósito</h2>
+    <input
+      type="number"
+      placeholder="Monto"
+      value={deposito}
+      onChange={(e) => setDeposito(e.target.value)}
+      className="border px-3 py-2 rounded w-full"
+      required
+    />
+
+    <label className="block">
+      <span className="text-sm text-gray-600">Comprobante</span>
+      <input
+        type="file"
+        accept="image/*,application/pdf"
+        onChange={(e) => {
+          const file = e.target.files?.[0] || null;
+          setComprobante(file);
+
+          // Preview solo para imágenes
+          if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const imgPreview = document.getElementById('preview') as HTMLImageElement;
+              if (imgPreview) imgPreview.src = reader.result as string;
+            };
+            reader.readAsDataURL(file);
+          }
+        }}
+        className="mt-1 block w-full text-sm text-gray-500
+        file:mr-4 file:py-2 file:px-4
+        file:rounded file:border-0
+        file:text-sm file:font-semibold
+        file:bg-blue-50 file:text-blue-700
+        hover:file:bg-blue-100"
+        required
+      />
+    </label>
+
+    {/* Preview de imagen */}
+    {comprobante && comprobante.type.startsWith('image/') && (
+ 
+      <img
+        id="preview"
+        src={URL.createObjectURL(comprobante)}
+        alt="Vista previa del comprobante"
+        className="mt-2 max-h-40 border rounded"
+      />
+    )}
+
+   <button
+  onClick={handleDeposito}
+  disabled={isSaving} // evita doble clic
+  className={`w-full px-4 py-2 rounded transition ${
+    isSaving
+      ? 'bg-yellow-500 cursor-not-allowed' // mientras guarda
+      : 'bg-green-500 hover:bg-green-600'
+  } text-white`}
+>
+  {isSaving ? 'Procesando...' : 'Guardar Depósito'}
+</button>
+
+  </div>
+</TabsContent>
 
         {/* Cobros */}
         <TabsContent value="cobro">
