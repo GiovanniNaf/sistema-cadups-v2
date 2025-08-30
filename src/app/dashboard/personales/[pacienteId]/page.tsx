@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Pencil, Trash } from 'lucide-react';
+import { Pencil, Trash, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -45,6 +45,11 @@ export default function DetallePacientePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(false);
 
+  // Estados para edición en modal
+  const [editRegistro, setEditRegistro] = useState<Registro | null>(null);
+  const [editMonto, setEditMonto] = useState<number | ''>('');
+  const [editConcepto, setEditConcepto] = useState<string>('');
+
   useEffect(() => {
     async function fetchPaciente() {
       const { data, error } = await supabase
@@ -63,7 +68,7 @@ export default function DetallePacientePage() {
     if (pacienteId) fetchPaciente();
   }, [pacienteId]);
 
-  // 🔹 Alternar estado de personales
+  // 🔹 Alternar personales
   const togglePersonales = async () => {
     if (!paciente) return;
     setToggleLoading(true);
@@ -164,14 +169,12 @@ export default function DetallePacientePage() {
       alert('Ingresa un monto para el depósito');
       return;
     }
-
     if (!comprobante) {
       alert('Debes subir un comprobante del depósito');
       return;
     }
 
     setIsSaving(true);
-
     const evidenciaUrl = await uploadComprobante(comprobante);
 
     const { error } = await supabase.from('depositos_personales').insert([
@@ -194,7 +197,6 @@ export default function DetallePacientePage() {
       alert('✅ Depósito agregado con éxito');
     }
   };
-
 
   const handleCobro = async () => {
     if (!cobro || !concepto) {
@@ -233,26 +235,68 @@ export default function DetallePacientePage() {
     await fetchSaldo();
     alert('✅ Registro eliminado');
   };
+
+  // 🔹 Editar registro (abrir modal)
+  const handleEditar = (reg: Registro) => {
+    setEditRegistro(reg);
+    setEditMonto(reg.monto);
+    setEditConcepto(reg.concepto || '');
+  };
+
+  // 🔹 Guardar edición
+  const handleGuardarEdicion = async () => {
+    if (!editRegistro) return;
+
+    if (editMonto === '' || (editRegistro.tipo === 'cobro' && editConcepto.trim() === '')) {
+      alert('Completa todos los campos');
+      return;
+    }
+
+    if (editRegistro.tipo === 'deposito') {
+      const { error } = await supabase
+        .from('depositos_personales')
+        .update({ monto: Number(editMonto) })
+        .eq('id', editRegistro.id);
+      if (error) {
+        console.error('Error al actualizar depósito:', error.message);
+        alert('❌ Error al actualizar depósito');
+      }
+    } else {
+      const { error } = await supabase
+        .from('cobros_personales')
+        .update({ monto: Number(editMonto), concepto: editConcepto })
+        .eq('id', editRegistro.id);
+      if (error) {
+        console.error('Error al actualizar cobro:', error.message);
+        alert('❌ Error al actualizar cobro');
+      }
+    }
+
+    setEditRegistro(null);
+    setEditMonto('');
+    setEditConcepto('');
+    await fetchHistorial();
+    await fetchSaldo();
+    alert('✅ Registro actualizado');
+  };
+
   const generarPDFHistorial = () => {
     if (!paciente) return;
 
     const doc = new jsPDF('p', 'pt', 'a4');
     const margin = 40;
 
-    // Título
     doc.setFontSize(22);
     doc.text(`Historial de Personales`, margin, 40);
     doc.setFontSize(16);
     doc.text(`Paciente: ${paciente.nombre}`, margin, 65);
     doc.text(`No. Expediente: ${paciente.numero_expediente}`, margin, 85);
 
-    // Separar depósitos y cobros
     const depositos = historial.filter((r) => r.tipo === 'deposito');
     const cobros = historial.filter((r) => r.tipo === 'cobro');
 
     let currentY = 110;
 
-    // 🔹 Depósitos
     if (depositos.length > 0) {
       doc.setFontSize(16);
       doc.text('Depósitos', margin, currentY);
@@ -267,14 +311,13 @@ export default function DetallePacientePage() {
         ]),
         margin: { left: margin, right: margin },
         styles: { fontSize: 12 },
-        headStyles: { fillColor: [70, 130, 180], textColor: 255 }, // azul profesional
+        headStyles: { fillColor: [70, 130, 180], textColor: 255 },
         theme: 'grid',
       });
 
       currentY = (doc as any).lastAutoTable.finalY + 30;
     }
 
-    // 🔹 Cobros
     if (cobros.length > 0) {
       doc.setFontSize(16);
       doc.text('Cobros', margin, currentY);
@@ -289,69 +332,67 @@ export default function DetallePacientePage() {
         ]),
         margin: { left: margin, right: margin },
         styles: { fontSize: 12 },
-        headStyles: { fillColor: [220, 20, 60], textColor: 255 }, // rojo profesional
+        headStyles: { fillColor: [220, 20, 60], textColor: 255 },
         theme: 'grid',
       });
 
       currentY = (doc as any).lastAutoTable.finalY + 30;
     }
 
-    // 🔹 Saldo final
     doc.setFontSize(18);
     doc.setTextColor(0, 100, 0);
     doc.text(`Saldo Actual: $${saldo.toFixed(2)}`, margin, currentY);
 
-    // Abrir PDF en nueva ventana
     const pdfUrl = doc.output('bloburl');
     window.open(pdfUrl);
   };
-
 
   if (loading) return <p className="p-4">Cargando datos...</p>;
   if (!paciente) return <p className="p-4">Paciente no encontrado.</p>;
 
   return (
-   <div className="p-4 max-w-2xl mx-auto">
-  <button
-    onClick={() => router.push('/dashboard/personales')}
-    className="mb-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-  >
-    ← Regresar
-  </button>
+    <div className="p-4 max-w-2xl mx-auto relative">
 
-  <h1 className="text-2xl font-bold mb-2">Detalle de {paciente.nombre}</h1>
-
-  {/* Contenedor flex para expediente + toggle */}
-  <div className="flex items-center mb-4 space-x-4">
-    <p className="text-sm text-gray-600">
-      No. Expediente: {paciente.numero_expediente}
-    </p>
-
-    {/* Toggle tipo switch */}
-    <div className="flex items-center">
-      <span className="mr-2 font-semibold text-gray-700 text-sm">Personales</span>
       <button
-        onClick={togglePersonales}
-        disabled={toggleLoading}
-        className={`relative inline-flex items-center h-6 rounded-full w-12 transition-colors duration-300 focus:outline-none shadow ${
-          paciente.personales ? 'bg-green-500' : 'bg-gray-300'
-        } ${toggleLoading ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+        onClick={() => router.push('/dashboard/personales')}
+        className="mb-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
       >
-        <span
-          className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-300 ${
-            paciente.personales ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
+        ← Regresar
       </button>
-      <span className="ml-2 font-medium text-sm">
-        {toggleLoading
-          ? 'Procesando...'
-          : paciente.personales
-          ? '✅ Activado'
-          : '❌ Desactivado'}
-      </span>
-    </div>
-  </div>
+
+      <h1 className="text-2xl font-bold mb-2">Detalle de {paciente.nombre}</h1>
+
+      {/* Expediente + toggle */}
+      <div className="flex items-center mb-4 space-x-4">
+        <p className="text-sm text-gray-600">
+          No. Expediente: {paciente.numero_expediente}
+        </p>
+
+        <div className="flex items-center">
+          <span className="mr-2 font-semibold text-gray-700 text-sm">Personales</span>
+          <button
+            onClick={togglePersonales}
+            disabled={toggleLoading}
+            className={`relative inline-flex items-center h-6 rounded-full w-12 transition-colors duration-300 focus:outline-none shadow ${
+              paciente.personales ? 'bg-green-500' : 'bg-gray-300'
+            } ${toggleLoading ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+          >
+            <span
+              className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-300 ${
+                paciente.personales ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="ml-2 font-medium text-sm">
+            {toggleLoading
+              ? 'Procesando...'
+              : paciente.personales
+              ? '✅ Activado'
+              : '❌ Desactivado'}
+          </span>
+        </div>
+      </div>
+
       <p className="text-lg font-semibold mb-6">
         💰 Saldo actual: <span className="text-green-600">${saldo.toFixed(2)}</span>
       </p>
@@ -370,7 +411,6 @@ export default function DetallePacientePage() {
           <TabsTrigger value="historial">Historial</TabsTrigger>
         </TabsList>
 
-
         {/* Depósitos */}
         <TabsContent value="deposito">
           <div className="border p-4 rounded space-y-3">
@@ -383,7 +423,6 @@ export default function DetallePacientePage() {
               className="border px-3 py-2 rounded w-full"
               required
             />
-
             <label className="block">
               <span className="text-sm text-gray-600">Comprobante</span>
               <input
@@ -392,49 +431,26 @@ export default function DetallePacientePage() {
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   setComprobante(file);
-
-                  // Preview solo para imágenes
-                  if (file && file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const imgPreview = document.getElementById('preview') as HTMLImageElement;
-                      if (imgPreview) imgPreview.src = reader.result as string;
-                    };
-                    reader.readAsDataURL(file);
-                  }
                 }}
                 className="mt-1 block w-full text-sm text-gray-500
-        file:mr-4 file:py-2 file:px-4
-        file:rounded file:border-0
-        file:text-sm file:font-semibold
-        file:bg-blue-50 file:text-blue-700
-        hover:file:bg-blue-100"
+          file:mr-4 file:py-2 file:px-4
+          file:rounded file:border-0
+          file:text-sm file:font-semibold
+          file:bg-blue-50 file:text-blue-700
+          hover:file:bg-blue-100"
                 required
               />
             </label>
-
-            {/* Preview de imagen */}
-            {comprobante && comprobante.type.startsWith('image/') && (
-
-              <img
-                id="preview"
-                src={URL.createObjectURL(comprobante)}
-                alt="Vista previa del comprobante"
-                className="mt-2 max-h-40 border rounded"
-              />
-            )}
-
             <button
               onClick={handleDeposito}
-              disabled={isSaving} // evita doble clic
+              disabled={isSaving}
               className={`w-full px-4 py-2 rounded transition ${isSaving
-                  ? 'bg-yellow-500 cursor-not-allowed' // mientras guarda
+                  ? 'bg-yellow-500 cursor-not-allowed'
                   : 'bg-green-500 hover:bg-green-600'
                 } text-white`}
             >
               {isSaving ? 'Procesando...' : 'Guardar Depósito'}
             </button>
-
           </div>
         </TabsContent>
 
@@ -487,10 +503,11 @@ export default function DetallePacientePage() {
                     <tr key={`${reg.tipo}-${reg.id}`} className="border-t">
                       <td className="p-2">{new Date(reg.creado_en).toLocaleDateString()}</td>
                       <td className="p-2 capitalize">{reg.tipo}</td>
-                      <td className="p-2 font-semibold">${reg.monto.toFixed(2)}</td>
+                      <td className="p-2 font-semibold">
+                        ${reg.monto.toFixed(2)}
+                      </td>
                       <td className="p-2">
-                        {reg.tipo === 'cobro' && reg.concepto}
-                        {reg.tipo === 'deposito' && reg.evidencia_url && (
+                        {reg.tipo === 'cobro' ? reg.concepto : reg.evidencia_url && (
                           <a href={reg.evidencia_url} target="_blank" className="text-blue-600 underline">
                             Ver comprobante
                           </a>
@@ -500,7 +517,7 @@ export default function DetallePacientePage() {
                         <button onClick={() => handleEliminar(reg)} title="Eliminar">
                           <Trash className="w-5 h-5 text-red-600 hover:text-red-800" />
                         </button>
-                        <button onClick={() => alert('Función editar aún no implementada')} title="Editar">
+                        <button onClick={() => handleEditar(reg)} title="Editar">
                           <Pencil className="w-5 h-5 text-blue-600 hover:text-blue-800" />
                         </button>
                       </td>
@@ -512,6 +529,49 @@ export default function DetallePacientePage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de edición */}
+      {editRegistro && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 relative">
+            <button className="absolute top-2 right-2" onClick={() => setEditRegistro(null)}>
+              <X className="w-5 h-5 text-gray-700" />
+            </button>
+            <h2 className="text-lg font-semibold mb-4">Editar {editRegistro.tipo}</h2>
+            <input
+              type="number"
+              placeholder="Monto"
+              value={editMonto}
+              onChange={(e) => setEditMonto(Number(e.target.value))}
+              className="border px-3 py-2 rounded w-full mb-3"
+            />
+            {editRegistro.tipo === 'cobro' && (
+              <input
+                type="text"
+                placeholder="Concepto"
+                value={editConcepto}
+                onChange={(e) => setEditConcepto(e.target.value)}
+                className="border px-3 py-2 rounded w-full mb-3"
+              />
+            )}
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setEditRegistro(null)}
+                className="px-4 py-2 rounded border hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardarEdicion}
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
