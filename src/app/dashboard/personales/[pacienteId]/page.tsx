@@ -14,6 +14,7 @@ interface Paciente {
   id: number;
   nombre: string;
   numero_expediente: string;
+  personales: boolean;
 }
 
 interface Registro {
@@ -42,12 +43,13 @@ export default function DetallePacientePage() {
   const [historial, setHistorial] = useState<Registro[]>([]);
   const [saldo, setSaldo] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
 
   useEffect(() => {
     async function fetchPaciente() {
       const { data, error } = await supabase
         .from('pacientes')
-        .select('id, nombre, numero_expediente')
+        .select('id, nombre, numero_expediente, personales')
         .eq('id', pacienteId)
         .single();
       if (error) {
@@ -60,6 +62,29 @@ export default function DetallePacientePage() {
     }
     if (pacienteId) fetchPaciente();
   }, [pacienteId]);
+
+  // 🔹 Alternar estado de personales
+  const togglePersonales = async () => {
+    if (!paciente) return;
+    setToggleLoading(true);
+
+    const nuevoValor = !paciente.personales;
+    const { error } = await supabase
+      .from('pacientes')
+      .update({ personales: nuevoValor })
+      .eq('id', paciente.id);
+
+    setToggleLoading(false);
+
+    if (error) {
+      console.error('Error al actualizar personales:', error.message);
+      alert('❌ No se pudo actualizar');
+      return;
+    }
+
+    setPaciente({ ...paciente, personales: nuevoValor });
+    alert(`✅ Ahora personales está ${nuevoValor ? 'ACTIVO' : 'DESACTIVADO'}`);
+  };
 
   async function fetchSaldo() {
     const { data, error } = await supabase.rpc('obtener_saldo_personales', {
@@ -134,41 +159,41 @@ export default function DetallePacientePage() {
     return urlData.publicUrl;
   };
 
-const handleDeposito = async () => {
-  if (!deposito) {
-    alert('Ingresa un monto para el depósito');
-    return;
-  }
+  const handleDeposito = async () => {
+    if (!deposito) {
+      alert('Ingresa un monto para el depósito');
+      return;
+    }
 
-  if (!comprobante) {
-    alert('Debes subir un comprobante del depósito');
-    return;
-  }
+    if (!comprobante) {
+      alert('Debes subir un comprobante del depósito');
+      return;
+    }
 
-  setIsSaving(true);
+    setIsSaving(true);
 
-  const evidenciaUrl = await uploadComprobante(comprobante);
+    const evidenciaUrl = await uploadComprobante(comprobante);
 
-  const { error } = await supabase.from('depositos_personales').insert([
-    {
-      paciente_id: pacienteId,
-      monto: parseFloat(deposito),
-      evidencia_url: evidenciaUrl,
-    },
-  ]);
-  
-   setIsSaving(false);
+    const { error } = await supabase.from('depositos_personales').insert([
+      {
+        paciente_id: pacienteId,
+        monto: parseFloat(deposito),
+        evidencia_url: evidenciaUrl,
+      },
+    ]);
 
-  if (error) {
-    console.error('Error al insertar depósito:', error.message);
-  } else {
-    setDeposito('');
-    setComprobante(null);
-    await fetchHistorial();
-    await fetchSaldo();
-    alert('✅ Depósito agregado con éxito');
-  }
-};
+    setIsSaving(false);
+
+    if (error) {
+      console.error('Error al insertar depósito:', error.message);
+    } else {
+      setDeposito('');
+      setComprobante(null);
+      await fetchHistorial();
+      await fetchSaldo();
+      alert('✅ Depósito agregado con éxito');
+    }
+  };
 
 
   const handleCobro = async () => {
@@ -208,94 +233,125 @@ const handleDeposito = async () => {
     await fetchSaldo();
     alert('✅ Registro eliminado');
   };
-const generarPDFHistorial = () => {
-  if (!paciente) return;
+  const generarPDFHistorial = () => {
+    if (!paciente) return;
 
-  const doc = new jsPDF('p', 'pt', 'a4');
-  const margin = 40;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const margin = 40;
 
-  // Título
-  doc.setFontSize(22);
-  doc.text(`Historial de Personales`, margin, 40);
-  doc.setFontSize(16);
-  doc.text(`Paciente: ${paciente.nombre}`, margin, 65);
-  doc.text(`No. Expediente: ${paciente.numero_expediente}`, margin, 85);
-
-  // Separar depósitos y cobros
-  const depositos = historial.filter((r) => r.tipo === 'deposito');
-  const cobros = historial.filter((r) => r.tipo === 'cobro');
-
-  let currentY = 110;
-
-  // 🔹 Depósitos
-  if (depositos.length > 0) {
+    // Título
+    doc.setFontSize(22);
+    doc.text(`Historial de Personales`, margin, 40);
     doc.setFontSize(16);
-    doc.text('Depósitos', margin, currentY);
-    currentY += 10;
+    doc.text(`Paciente: ${paciente.nombre}`, margin, 65);
+    doc.text(`No. Expediente: ${paciente.numero_expediente}`, margin, 85);
 
-    autoTable(doc, {
-      startY: currentY + 10,
-      head: [['Fecha', 'Monto']],
-      body: depositos.map((d) => [
-        new Date(d.creado_en).toLocaleDateString(),
-        `$${d.monto.toFixed(2)}`,
-      ]),
-      margin: { left: margin, right: margin },
-      styles: { fontSize: 12 },
-      headStyles: { fillColor: [70, 130, 180], textColor: 255 }, // azul profesional
-      theme: 'grid',
-    });
+    // Separar depósitos y cobros
+    const depositos = historial.filter((r) => r.tipo === 'deposito');
+    const cobros = historial.filter((r) => r.tipo === 'cobro');
 
-    currentY = (doc as any).lastAutoTable.finalY + 30;
-  }
+    let currentY = 110;
 
-  // 🔹 Cobros
-  if (cobros.length > 0) {
-    doc.setFontSize(16);
-    doc.text('Cobros', margin, currentY);
-    currentY += 10;
+    // 🔹 Depósitos
+    if (depositos.length > 0) {
+      doc.setFontSize(16);
+      doc.text('Depósitos', margin, currentY);
+      currentY += 10;
 
-    autoTable(doc, {
-      startY: currentY + 10,
-      head: [['Fecha', 'Monto']],
-      body: cobros.map((c) => [
-        new Date(c.creado_en).toLocaleDateString(),
-        `$${c.monto.toFixed(2)}`,
-      ]),
-      margin: { left: margin, right: margin },
-      styles: { fontSize: 12 },
-      headStyles: { fillColor: [220, 20, 60], textColor: 255 }, // rojo profesional
-      theme: 'grid',
-    });
+      autoTable(doc, {
+        startY: currentY + 10,
+        head: [['Fecha', 'Monto']],
+        body: depositos.map((d) => [
+          new Date(d.creado_en).toLocaleDateString(),
+          `$${d.monto.toFixed(2)}`,
+        ]),
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 12 },
+        headStyles: { fillColor: [70, 130, 180], textColor: 255 }, // azul profesional
+        theme: 'grid',
+      });
 
-    currentY = (doc as any).lastAutoTable.finalY + 30;
-  }
+      currentY = (doc as any).lastAutoTable.finalY + 30;
+    }
 
-  // 🔹 Saldo final
-  doc.setFontSize(18);
-  doc.setTextColor(0, 100, 0);
-  doc.text(`Saldo Actual: $${saldo.toFixed(2)}`, margin, currentY);
+    // 🔹 Cobros
+    if (cobros.length > 0) {
+      doc.setFontSize(16);
+      doc.text('Cobros', margin, currentY);
+      currentY += 10;
 
-  // Abrir PDF en nueva ventana
-  const pdfUrl = doc.output('bloburl');
-  window.open(pdfUrl);
-};
+      autoTable(doc, {
+        startY: currentY + 10,
+        head: [['Fecha', 'Monto']],
+        body: cobros.map((c) => [
+          new Date(c.creado_en).toLocaleDateString(),
+          `$${c.monto.toFixed(2)}`,
+        ]),
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 12 },
+        headStyles: { fillColor: [220, 20, 60], textColor: 255 }, // rojo profesional
+        theme: 'grid',
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 30;
+    }
+
+    // 🔹 Saldo final
+    doc.setFontSize(18);
+    doc.setTextColor(0, 100, 0);
+    doc.text(`Saldo Actual: $${saldo.toFixed(2)}`, margin, currentY);
+
+    // Abrir PDF en nueva ventana
+    const pdfUrl = doc.output('bloburl');
+    window.open(pdfUrl);
+  };
 
 
   if (loading) return <p className="p-4">Cargando datos...</p>;
   if (!paciente) return <p className="p-4">Paciente no encontrado.</p>;
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <button
-        onClick={() => router.push('/dashboard/personales')}
-        className="mb-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-      >
-        ← Regresar
-      </button>
+   <div className="p-4 max-w-2xl mx-auto">
+  <button
+    onClick={() => router.push('/dashboard/personales')}
+    className="mb-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+  >
+    ← Regresar
+  </button>
 
-      <h1 className="text-2xl font-bold mb-2">Detalle de {paciente.nombre}</h1>
-      <p className="text-sm text-gray-600 mb-4">No. Expediente: {paciente.numero_expediente}</p>
+  <h1 className="text-2xl font-bold mb-2">Detalle de {paciente.nombre}</h1>
+
+  {/* Contenedor flex para expediente + toggle */}
+  <div className="flex items-center mb-4 space-x-4">
+    <p className="text-sm text-gray-600">
+      No. Expediente: {paciente.numero_expediente}
+    </p>
+
+    {/* Toggle tipo switch */}
+    <div className="flex items-center">
+      <span className="mr-2 font-semibold text-gray-700 text-sm">Personales</span>
+      <button
+        onClick={togglePersonales}
+        disabled={toggleLoading}
+        className={`relative inline-flex items-center h-6 rounded-full w-12 transition-colors duration-300 focus:outline-none shadow ${
+          paciente.personales ? 'bg-green-500' : 'bg-gray-300'
+        } ${toggleLoading ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+      >
+        <span
+          className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-300 ${
+            paciente.personales ? 'translate-x-6' : 'translate-x-1'
+          }`}
+        />
+      </button>
+      <span className="ml-2 font-medium text-sm">
+        {toggleLoading
+          ? 'Procesando...'
+          : paciente.personales
+          ? '✅ Activado'
+          : '❌ Desactivado'}
+      </span>
+    </div>
+  </div>
       <p className="text-lg font-semibold mb-6">
         💰 Saldo actual: <span className="text-green-600">${saldo.toFixed(2)}</span>
       </p>
@@ -315,73 +371,72 @@ const generarPDFHistorial = () => {
         </TabsList>
 
 
-       {/* Depósitos */}
-<TabsContent value="deposito">
-  <div className="border p-4 rounded space-y-3">
-    <h2 className="text-lg font-semibold">Agregar Depósito</h2>
-    <input
-      type="number"
-      placeholder="Monto"
-      value={deposito}
-      onChange={(e) => setDeposito(e.target.value)}
-      className="border px-3 py-2 rounded w-full"
-      required
-    />
+        {/* Depósitos */}
+        <TabsContent value="deposito">
+          <div className="border p-4 rounded space-y-3">
+            <h2 className="text-lg font-semibold">Agregar Depósito</h2>
+            <input
+              type="number"
+              placeholder="Monto"
+              value={deposito}
+              onChange={(e) => setDeposito(e.target.value)}
+              className="border px-3 py-2 rounded w-full"
+              required
+            />
 
-    <label className="block">
-      <span className="text-sm text-gray-600">Comprobante</span>
-      <input
-        type="file"
-        accept="image/*,application/pdf"
-        onChange={(e) => {
-          const file = e.target.files?.[0] || null;
-          setComprobante(file);
+            <label className="block">
+              <span className="text-sm text-gray-600">Comprobante</span>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setComprobante(file);
 
-          // Preview solo para imágenes
-          if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const imgPreview = document.getElementById('preview') as HTMLImageElement;
-              if (imgPreview) imgPreview.src = reader.result as string;
-            };
-            reader.readAsDataURL(file);
-          }
-        }}
-        className="mt-1 block w-full text-sm text-gray-500
+                  // Preview solo para imágenes
+                  if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const imgPreview = document.getElementById('preview') as HTMLImageElement;
+                      if (imgPreview) imgPreview.src = reader.result as string;
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="mt-1 block w-full text-sm text-gray-500
         file:mr-4 file:py-2 file:px-4
         file:rounded file:border-0
         file:text-sm file:font-semibold
         file:bg-blue-50 file:text-blue-700
         hover:file:bg-blue-100"
-        required
-      />
-    </label>
+                required
+              />
+            </label>
 
-    {/* Preview de imagen */}
-    {comprobante && comprobante.type.startsWith('image/') && (
- 
-      <img
-        id="preview"
-        src={URL.createObjectURL(comprobante)}
-        alt="Vista previa del comprobante"
-        className="mt-2 max-h-40 border rounded"
-      />
-    )}
+            {/* Preview de imagen */}
+            {comprobante && comprobante.type.startsWith('image/') && (
 
-   <button
-  onClick={handleDeposito}
-  disabled={isSaving} // evita doble clic
-  className={`w-full px-4 py-2 rounded transition ${
-    isSaving
-      ? 'bg-yellow-500 cursor-not-allowed' // mientras guarda
-      : 'bg-green-500 hover:bg-green-600'
-  } text-white`}
->
-  {isSaving ? 'Procesando...' : 'Guardar Depósito'}
-</button>
+              <img
+                id="preview"
+                src={URL.createObjectURL(comprobante)}
+                alt="Vista previa del comprobante"
+                className="mt-2 max-h-40 border rounded"
+              />
+            )}
 
-  </div>
-</TabsContent>
+            <button
+              onClick={handleDeposito}
+              disabled={isSaving} // evita doble clic
+              className={`w-full px-4 py-2 rounded transition ${isSaving
+                  ? 'bg-yellow-500 cursor-not-allowed' // mientras guarda
+                  : 'bg-green-500 hover:bg-green-600'
+                } text-white`}
+            >
+              {isSaving ? 'Procesando...' : 'Guardar Depósito'}
+            </button>
+
+          </div>
+        </TabsContent>
 
         {/* Cobros */}
         <TabsContent value="cobro">

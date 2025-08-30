@@ -11,6 +11,7 @@ interface Paciente {
   nombre: string;
   numero_expediente: string;
   saldo: number;
+  personales: boolean; // 👈 campo boolean
 }
 
 export default function CajaPage() {
@@ -21,7 +22,9 @@ export default function CajaPage() {
 
   useEffect(() => {
     async function fetchPacientesConSaldos() {
-      const { data, error } = await supabase.rpc('obtener_saldo_personales').select("*");
+      const { data, error } = await supabase
+        .rpc('obtener_saldo_personales2')
+        .select('*');
 
       if (error) {
         console.error('Error al obtener datos:', error.message);
@@ -39,63 +42,75 @@ export default function CajaPage() {
   const handleBusqueda = (texto: string) => {
     setBusqueda(texto);
     const textoLower = texto.toLowerCase();
-    const filtrados = pacientesOriginales.filter((p) =>
-      p.nombre.toLowerCase().includes(textoLower) ||
-      p.numero_expediente.toLowerCase().includes(textoLower)
+    const filtrados = pacientesOriginales.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(textoLower) ||
+        p.numero_expediente.toLowerCase().includes(textoLower)
     );
     setPacientes(filtrados);
   };
 
- const generarPDF = () => {
-  const pacientesSaldoAFavor = pacientes.filter(p => p.saldo > 0);
-  if (pacientesSaldoAFavor.length === 0) {
-    alert("No hay pacientes con saldo a favor");
-    return;
-  }
+  const generarPDF = () => {
+    // 👇 Filtramos SOLO los personales con saldo a favor
+    const pacientesSaldoAFavor = pacientes.filter(
+      (p) => p.personales === true && p.saldo > 0
+    );
 
-  // PDF horizontal
-  const doc = new jsPDF('landscape', 'pt', 'a4');
-  const margin = 40;
+    if (pacientesSaldoAFavor.length === 0) {
+      alert('No hay pacientes personales con saldo a favor');
+      return;
+    }
 
-  // Título
-  doc.setFontSize(16);
-  doc.text('Lista de Personales Domingo', margin, 50);
-  doc.setFontSize(16);
-  doc.text(`Fecha: ${new Date().toLocaleDateString()}`, margin, 75);
+    const doc = new jsPDF('landscape', 'pt', 'a4');
+    const margin = 40;
 
-  // Preparar datos de la tabla
-  const body = pacientesSaldoAFavor.map(p => [
-    p.nombre,
-    `$${p.saldo.toFixed(2)}`,
-    '', // Producto solicitado
-    '', // Costo del producto
-    '', // Firma Enterado
-    '', // Firma Recibido
-  ]);
+    doc.setFontSize(16);
+    doc.text('Lista de Personales Domingo', margin, 50);
+    doc.setFontSize(16);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, margin, 75);
 
- autoTable(doc, {
-  startY: 100,
-  head: [['Nombre', 'Saldo a favor', 'Producto solicitado', 'Costo', 'Firma Enterado', 'Firma Recibido']],
-  body,
-  margin: { left: 40, right: 40 },
-  styles: { fontSize: 13, cellPadding: 10, textColor: 0, halign: 'center', valign: 'middle' },
-  headStyles: { fillColor: 220, textColor: 0, fontStyle: 'bold' },
-  theme: 'grid',
-  didDrawCell: (data) => {
-    // Para todas las celdas
-    doc.setLineWidth(1.2); // Cambia 1.2 a un número mayor para líneas más gruesas
-    doc.setDrawColor(0);   // Color negro
-    doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height);
-  },
-});
+    const body = pacientesSaldoAFavor.map((p) => [
+      p.nombre,
+      `$${p.saldo.toFixed(2)}`,
+      '',
+      '',
+      '',
+      '',
+    ]);
 
+    autoTable(doc, {
+      startY: 100,
+      head: [
+        [
+          'Nombre',
+          'Saldo a favor',
+          'Producto solicitado',
+          'Costo',
+          'Firma Enterado',
+          'Firma Recibido',
+        ],
+      ],
+      body,
+      margin: { left: 40, right: 40 },
+      styles: {
+        fontSize: 13,
+        cellPadding: 10,
+        textColor: 0,
+        halign: 'center',
+        valign: 'middle',
+      },
+      headStyles: { fillColor: 220, textColor: 0, fontStyle: 'bold' },
+      theme: 'grid',
+      didDrawCell: (data) => {
+        doc.setLineWidth(1.2);
+        doc.setDrawColor(0);
+        doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height);
+      },
+    });
 
-  // Abrir PDF en nueva ventana
-  const pdfUrl = doc.output('bloburl');
-  window.open(pdfUrl);
-};
-
-
+    const pdfUrl = doc.output('bloburl');
+    window.open(pdfUrl);
+  };
 
   if (loading) return <p className="p-4">Cargando pacientes...</p>;
 
@@ -126,7 +141,8 @@ export default function CajaPage() {
           {pacientes.map((p) => (
             <div
               key={p.id}
-              className="border rounded-lg p-4 shadow-sm bg-white flex flex-col justify-between"
+              className={`border rounded-lg p-4 shadow-sm flex flex-col justify-between
+                ${p.personales ? 'bg-green-100 border-green-400' : 'bg-blue-100 border-blue-600'}`}
             >
               <div>
                 <p className="text-lg font-semibold">{p.nombre}</p>
@@ -135,9 +151,13 @@ export default function CajaPage() {
                 </p>
                 <p className="mt-2 font-medium">
                   {p.saldo > 0 ? (
-                    <span className="text-green-600">Saldo a favor: ${p.saldo.toFixed(2)}</span>
+                    <span className="text-green-600">
+                      Saldo a favor: ${p.saldo.toFixed(2)}
+                    </span>
                   ) : p.saldo < 0 ? (
-                    <span className="text-red-600">Deuda pendiente: ${Math.abs(p.saldo).toFixed(2)}</span>
+                    <span className="text-red-600">
+                      Deuda pendiente: ${Math.abs(p.saldo).toFixed(2)}
+                    </span>
                   ) : (
                     <span className="text-gray-600">Saldo: $0.00</span>
                   )}
