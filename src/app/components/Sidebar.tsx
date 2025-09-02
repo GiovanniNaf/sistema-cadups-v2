@@ -4,17 +4,16 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useState } from 'react'
-import { Menu, X, Home, ClipboardList, Pill, CalendarDays, LogOut, User2Icon, BriefcaseIcon, BanknoteArrowDownIcon } from 'lucide-react'
+import { Menu, X, Home, ClipboardList, CalendarDays, LogOut, User2Icon, BriefcaseIcon, BanknoteArrowDownIcon } from 'lucide-react'
 
 
 const links = [
   { href: '/dashboard/', label: 'Inicio', icon: Home },
   { href: '/dashboard/pacientes', label: 'Pacientes', icon: User2Icon },
-  { href: '/dashboard/interconsultas', label: 'Interconsultas', icon: ClipboardList },
-  { href: '/dashboard/medicamentos', label: 'Medicamentos', icon: Pill },
   { href: '/dashboard/visitas', label: 'Visitas', icon: CalendarDays },
   { href: '/dashboard/caja', label: 'Tienda', icon: BriefcaseIcon  },
-    { href: '/dashboard/personales', label: 'Personales', icon:BanknoteArrowDownIcon  },
+  { href: '/dashboard/personales', label: 'Personales', icon:BanknoteArrowDownIcon  },
+  { href: '/dashboard/medico', label: 'Nota de Evolución', icon:ClipboardList  },
  
 ]
 

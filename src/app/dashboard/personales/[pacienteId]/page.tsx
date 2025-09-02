@@ -280,72 +280,69 @@ export default function DetallePacientePage() {
     alert('✅ Registro actualizado');
   };
 
-  const generarPDFHistorial = () => {
-    if (!paciente) return;
+const generarPDFHistorial = () => {
+  if (!paciente) return;
 
-    const doc = new jsPDF('p', 'pt', 'a4');
-    const margin = 40;
+  const doc = new jsPDF('p', 'pt', 'a4');
+  const margin = 40;
 
-    doc.setFontSize(22);
-    doc.text(`Historial de Personales`, margin, 40);
-    doc.setFontSize(16);
-    doc.text(`Paciente: ${paciente.nombre}`, margin, 65);
-    doc.text(`No. Expediente: ${paciente.numero_expediente}`, margin, 85);
+  // Títulos
+  doc.setFontSize(24);
+  doc.text(`Historial de Personales`, margin, 40);
+  doc.setFontSize(18);
+  doc.text(`Paciente: ${paciente.nombre}`, margin, 70);
+  doc.text(`No. Expediente: ${paciente.numero_expediente}`, margin, 95);
 
-    const depositos = historial.filter((r) => r.tipo === 'deposito');
-    const cobros = historial.filter((r) => r.tipo === 'cobro');
+  // Movimientos
+  const movimientos = historial
+    .map((r) => ({
+      fecha: r.creado_en ? new Date(r.creado_en) : null,
+      concepto: r.tipo === 'deposito' ? 'Deposito' : r.concepto ?? '',
+      monto: r.monto !== undefined ? `$${r.monto.toFixed(2)}` : '$0.00',
+      tipo: r.tipo,
+    }))
+    .filter((m) => m.fecha !== null) // eliminamos fechas inválidas
+    .sort((a, b) => a.fecha!.getTime() - b.fecha!.getTime()); // de más antigua a más reciente
 
-    let currentY = 110;
+  autoTable(doc, {
+    startY: 120,
+    head: [['Fecha', 'Concepto', 'Monto']],
+    body: movimientos.map((m) => [
+      m.fecha!.toLocaleDateString(),
+      m.concepto,
+      m.monto,
+    ]),
+    margin: { left: margin, right: margin },
+    styles: { fontSize: 14, textColor:[255,255,255] },
+    theme: 'grid',
+    didParseCell: function (data) {
+      if (data.section === 'body') {
+        const tipo = movimientos[data.row.index].tipo;
+        if (tipo === 'deposito') {
+          data.cell.styles.fillColor = [39, 60, 245]; // azul
+        } else if (tipo === 'cobro') {
+          data.cell.styles.fillColor = [138, 151, 255]; // naranja
+        }
+      }
+    },
+  });
 
-    if (depositos.length > 0) {
-      doc.setFontSize(16);
-      doc.text('Depósitos', margin, currentY);
-      currentY += 10;
+  // Saldo actual al final
+  doc.setFontSize(20);
+  doc.setTextColor(0, 0, 255); // saldo en azul
+  doc.text(
+    `Saldo Actual: $${saldo.toFixed(2)}`,
+    margin,
+    (doc as any).lastAutoTable.finalY + 40
+  );
 
-      autoTable(doc, {
-        startY: currentY + 10,
-        head: [['Fecha', 'Monto']],
-        body: depositos.map((d) => [
-          new Date(d.creado_en).toLocaleDateString(),
-          `$${d.monto.toFixed(2)}`,
-        ]),
-        margin: { left: margin, right: margin },
-        styles: { fontSize: 12 },
-        headStyles: { fillColor: [70, 130, 180], textColor: 255 },
-        theme: 'grid',
-      });
+  const pdfUrl = doc.output('bloburl');
+  window.open(pdfUrl);
+};
 
-      currentY = (doc as any).lastAutoTable.finalY + 30;
-    }
 
-    if (cobros.length > 0) {
-      doc.setFontSize(16);
-      doc.text('Cobros', margin, currentY);
-      currentY += 10;
 
-      autoTable(doc, {
-        startY: currentY + 10,
-        head: [['Fecha', 'Monto']],
-        body: cobros.map((c) => [
-          new Date(c.creado_en).toLocaleDateString(),
-          `$${c.monto.toFixed(2)}`,
-        ]),
-        margin: { left: margin, right: margin },
-        styles: { fontSize: 12 },
-        headStyles: { fillColor: [220, 20, 60], textColor: 255 },
-        theme: 'grid',
-      });
 
-      currentY = (doc as any).lastAutoTable.finalY + 30;
-    }
-
-    doc.setFontSize(18);
-    doc.setTextColor(0, 100, 0);
-    doc.text(`Saldo Actual: $${saldo.toFixed(2)}`, margin, currentY);
-
-    const pdfUrl = doc.output('bloburl');
-    window.open(pdfUrl);
-  };
 
   if (loading) return <p className="p-4">Cargando datos...</p>;
   if (!paciente) return <p className="p-4">Paciente no encontrado.</p>;
